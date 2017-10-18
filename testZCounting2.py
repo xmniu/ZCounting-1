@@ -14,14 +14,19 @@ inFile="testCSV2.csv"
 chunkSize=200
 eosDir="/eos/cms/store/group/comm_luminosity/ZCounting/DQMFiles2017/cmsweb.cern.ch/dqm/offline/data/browse/ROOT/OfflineData/Run2017/SingleMuon/"
 
-HLTeff=array('d')
-SITeff=array('d')
-Staeff=array('d')
+HLTeffB=array('d')
+HLTeffE=array('d')
+SITeffB=array('d')
+SITeffE=array('d')
+StaeffB=array('d')
+StaeffE=array('d')
 crossX=array('d')
+crossX2=array('d')
 
 
 Zyield=array('d')
 Zrate=array('d')
+Zrate2=array('d')
 lumiDel=array('d')
 instDel=array('d')
 beginTime=[]
@@ -31,7 +36,8 @@ windowarray=array('d')
 
 
 ROOT.gROOT.Macro( os.path.expanduser( '~/.rootlogon.C' ) )
-ROOT.gROOT.LoadMacro("calculateDataEfficiency_v2.C")
+ROOT.gROOT.LoadMacro("calculateDataEfficiency_v3.C")
+ROOT.gROOT.LoadMacro("calculateZEfficiency.C")
 ROOT.gROOT.SetBatch(True)
 
 #lumiFile=open("./run302031.csv")
@@ -48,6 +54,7 @@ print data.axes
 LSlist=data.groupby('#run:fill')['ls'].apply(list)
 recLumiList=data.groupby('#run:fill')['recorded(/pb)'].apply(list)
 delLumiList=data.groupby('#run:fill')['delivered(/pb)'].apply(list)
+avgpuList=data.groupby('#run:fill')['avgpu'].apply(list)
 timeList=data.groupby('#run:fill')['time'].apply(list)
 for i in range(0,len(LSlist)):
 	LSlist[i]=[int(x.split(':')[0]) for x in LSlist[i]]
@@ -77,22 +84,25 @@ for run_i in range(0,len(fillRunlist)):
 	era="E"
     
 
-    
-    LSchunks 	= [LSlist[run_i][x:x+chunkSize] for x in range(0, len(LSlist[run_i]), chunkSize)]
-    Del_chunks  = [delLumiList[run_i][x:x+chunkSize] for x in range(0, len(delLumiList[run_i]), chunkSize)] 
-    Rec_chunks  = [recLumiList[run_i][x:x+chunkSize] for x in range(0, len(recLumiList[run_i]), chunkSize)]
-    time_chunks = [timeList[run_i][x:x+chunkSize] for x in range(0, len(timeList[run_i]), chunkSize)]
+    LSchunks 	 = [LSlist[run_i][x:x+chunkSize] for x in range(0, len(LSlist[run_i]), chunkSize)]
+    Del_chunks   = [delLumiList[run_i][x:x+chunkSize] for x in range(0, len(delLumiList[run_i]), chunkSize)] 
+    Rec_chunks   = [recLumiList[run_i][x:x+chunkSize] for x in range(0, len(recLumiList[run_i]), chunkSize)]
+    Avgpu_chunks = [avgpuList[run_i][x:x+chunkSize] for x in range(0, len(avgpuList[run_i]), chunkSize)]
+    time_chunks  = [timeList[run_i][x:x+chunkSize] for x in range(0, len(timeList[run_i]), chunkSize)]
+
     for chunk_i in range(0,len(LSchunks)):
-	recLumi_i = sum(Rec_chunks[chunk_i])
-	delLumi_i = sum(Del_chunks[chunk_i])	
-	deadtime_i = recLumi_i/delLumi_i
+	recLumi_i   = sum(Rec_chunks[chunk_i])
+	delLumi_i   = sum(Del_chunks[chunk_i])	
+	avgPileup_i = sum(Avgpu_chunks[chunk_i])
+	avgPileup_i = avgPileup_i/len(Avgpu_chunks[chunk_i])
+	deadtime_i  = recLumi_i/delLumi_i
 	print time_chunks[chunk_i]
 
 	datestamp_low=time_chunks[chunk_i][0].split(" ")
-	date_low=ROOT.TDatime(2017,int(datestamp_low[0].split("/")[1]),int(datestamp_low[0].split("/")[2]),int(datestamp_low[1].split(":")[0]),int(datestamp_low[1].split(":")[1]),int(datestamp_low[1].split(":")[2]))
+	date_low=ROOT.TDatime(2017,int(datestamp_low[0].split("/")[0]),int(datestamp_low[0].split("/")[1]),int(datestamp_low[1].split(":")[0]),int(datestamp_low[1].split(":")[1]),int(datestamp_low[1].split(":")[2]))
 
         datestamp_up=time_chunks[chunk_i][-1].split(" ")
-	date_up=ROOT.TDatime(2017,int(datestamp_up[0].split("/")[1]),int(datestamp_up[0].split("/")[2]),int(datestamp_up[1].split(":")[0]),int(datestamp_up[1].split(":")[1]),int(datestamp_up[1].split(":")[2]))
+	date_up=ROOT.TDatime(2017,int(datestamp_up[0].split("/")[0]),int(datestamp_up[0].split("/")[1]),int(datestamp_up[1].split(":")[0]),int(datestamp_up[1].split(":")[1]),int(datestamp_up[1].split(":")[2]))
 
 
 	print time_chunks[chunk_i]
@@ -102,33 +112,51 @@ for run_i in range(0,len(fillRunlist)):
 	print LSchunks[chunk_i]
 	print recLumi_i
 	print delLumi_i
+	print avgPileup_i
 	print "opening file: "+eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root"
 
+    	HLTeffB_i=ROOT.calculateDataEfficiency_v3(0,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"HLT",0,0,0,0,0)
+    	HLTeffE_i=ROOT.calculateDataEfficiency_v3(0,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"HLT",1,0,0,0,0)
+	SITeffB_i=ROOT.calculateDataEfficiency_v3(0,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"SIT",0,1,1,1,1)
+	SITeffE_i=ROOT.calculateDataEfficiency_v3(0,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"SIT",1,1,1,1,1)
+	StaeffB_i=ROOT.calculateDataEfficiency_v3(0,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"Sta",0,1,2,1,2)
+	StaeffE_i=ROOT.calculateDataEfficiency_v3(0,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"Sta",1,1,2,1,2)
+	Zyield_i=ROOT.calculateDataEfficiency_v3(1,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"HLT",0,0,0,0,0)
 
-    	HLTeff_i=ROOT.calculateDataEfficiency_v2(0,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],30,"HLT",0,0,0,0)
-	SITeff_i=ROOT.calculateDataEfficiency_v2(0,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],30,"SIT",1,1,1,1)
-	Staeff_i=ROOT.calculateDataEfficiency_v2(0,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],30,"Sta",1,2,1,2)
-	Zyield_i=ROOT.calculateDataEfficiency_v2(1,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],30,"HLT",0,0,0,0)
-
-
-	crossX.append(Zyield_i/(Staeff_i**2 * SITeff_i**2 * (1-(1-HLTeff_i)*(1-HLTeff_i))*recLumi_i))
-	effTot_i=(Staeff_i**2 * SITeff_i**2 * (1-(1-HLTeff_i)*(1-HLTeff_i)))
+	crossX.append(Zyield_i/(StaeffB_i**2 * SITeffB_i**2 * (1-(1-HLTeffB_i)*(1-HLTeffB_i))*recLumi_i))
+	effTot_i=(StaeffB_i**2 * SITeffB_i**2 * (1-(1-HLTeffB_i)*(1-HLTeffB_i)))
 	timeWindow_i=(date_up.Convert()-date_low.Convert())+23 #in seconds
 	zRate_i = Zyield_i/(effTot_i*deadtime_i*timeWindow_i)
+
+        ZMCEff=ROOT.calculateZEfficiency(0,avgPileup_i,HLTeffB_i,HLTeffE_i,SITeffB_i,SITeffE_i,StaeffB_i,StaeffE_i)
+        ZXSec  = Zyield_i*(1-0.01)/(ZMCEff*recLumi_i)
+        ZRate  = Zyield_i*(1-0.01)/(ZMCEff*timeWindow_i)
+#       ZMCEffBB = ROOT.calculateZEfficiency(1,avgPileup_i,HLTeffB_i,HLTeffE_i,SITeffB_i,SITeffE_i,StaeffB_i,StaeffE_i)
+#       ZMCEffBE = ROOT.calculateZEfficiency(2,avgPileup_i,HLTeffB_i,HLTeffE_i,SITeffB_i,SITeffE_i,StaeffB_i,StaeffE_i)
+#       ZMCEffEE = ROOT.calculateZEfficiency(3,avgPileup_i,HLTeffB_i,HLTeffE_i,SITeffB_i,SITeffE_i,StaeffB_i,StaeffE_i)
 	
 	print Zyield
 	print effTot_i
 	print deadtime_i
 	print timeWindow_i
 	print zRate_i
+	print "===Compare==="
+	print ZMCEff
+	print ZXSec
+	print ZRate
 	#Fill output Arrays
 
 	lumiDel.append(delLumi_i)
 	Zrate.append(zRate_i)
+	Zrate2.append(ZRate)
+	crossX2.append(ZXSec)
 	Zyield.append(Zyield_i)
-	Staeff.append(Staeff_i)
-	SITeff.append(SITeff_i)
-    	HLTeff.append(HLTeff_i)
+	StaeffB.append(StaeffB_i)
+	StaeffE.append(StaeffE_i)
+	SITeffB.append(SITeffB_i)
+	SITeffE.append(SITeffE_i)
+    	HLTeffB.append(HLTeffB_i)
+    	HLTeffE.append(HLTeffE_i)
 	beginTime.append(time_chunks[chunk_i][0])
 	endTime.append(time_chunks[chunk_i][-1])
 	fillarray.append(fill)
@@ -142,7 +170,8 @@ for run_i in range(0,len(fillRunlist)):
 
 with open('csvfile.csv','wb') as file:
 	for c in range(0,nMeasurements):
-		file.write(str(int(fillarray[c]))+","+str(beginTime[c])+","+str(endTime[c])+","+str(Zrate[c])+","+str(instDel[c])+","+str(lumiDel[c])+","+str(Zyield[c]))
+#		file.write(str(int(fillarray[c]))+","+str(beginTime[c])+","+str(endTime[c])+","+str(Zrate[c])+","+str(instDel[c])+","+str(lumiDel[c])+","+str(Zyield[c]))
+		file.write(str(int(fillarray[c]))+","+str(beginTime[c])+","+str(endTime[c])+","+str(ZRate[c])+","+str(instDel[c])+","+str(lumiDel[c])+","+str(Zyield[c]))
         	file.write('\n')
 
 print "crossX: "+str(crossX)
