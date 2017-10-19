@@ -50,7 +50,7 @@ const Float_t etaCut   = 2.4;
 const Float_t etaBound = 0.9;
 
 void generateTemplate(
-        const TString mcfilename, const TString purwDir, const Float_t meanPU);
+        const TString mcfilename, const TString purwDir, const Int_t meanPU);
 
 void performCount(
         Double_t &resEff, Double_t &resErrl, Double_t &resErrh, TH1D *passHist, TH1D *failHist,
@@ -60,6 +60,9 @@ void performFit(
         Double_t &resEff, Double_t &resErrl, Double_t &resErrh, TH1D *passHist, TH1D *failHist,
         const Int_t sigpass, const Int_t bkgpass, const Int_t sigfail, const Int_t bkgfail,
         TCanvas *cpass, TCanvas *cfail, const TString effType, const Bool_t etaRegion, const Int_t iBin, const Float_t lumi, const TString format);
+
+std::vector<double> preFit(TH1D *failHist);
+
 
 float calculateDataEfficiency_v3(
                 const Int_t   getYield,     // just get the yield  
@@ -76,10 +79,10 @@ float calculateDataEfficiency_v3(
 		const Int_t   bkgModPass,   // background model for PASS sample
 		const Int_t   sigModFail,   // signal extraction method for FAIL sample      
 		const Int_t   bkgModFail,   // background model for FAIL sample
-		const Float_t lumi=50.,     // luminosity for plot label: 40/50 Lumi-sections
-		const TString format="png", // plot format
-		const TString mcfilename="",// ROOT file containing MC events to generate templates from
-		const TString purwDir=""
+		const Float_t lumi=10.,     // luminosity for plot label
+                const TString mcfilename="",// ROOT file containing MC events to generate templates from
+                const TString purwDir="",
+		const TString format="png" // plot format
 ){
 
   if(getYield == 1){
@@ -94,7 +97,7 @@ float calculateDataEfficiency_v3(
   CPlot::sOutDir = outputDir + TString("/Run") + runNum + TString("/plots");
 
   // Generate histogram templates from MC if necessary
-  if(sigModPass==2 || sigModFail==2) generateTemplate(mcfilename, purwDir, meanPU);
+  if(sigModPass==2 || sigModFail==2) generateTemplate(mcfilename, purwDir, Int_t(meanPU));
 
   // Load the DQMIO file and corresponding histograms 
   TFile *infile = new TFile(inputFile);
@@ -128,15 +131,15 @@ float calculateDataEfficiency_v3(
 void generateTemplate(
 	const TString mcfilename,
 	const TString purwDir,
-	const Float_t meanPU 
+	const Int_t   meanPU 
 ){
   cout << "Creating histogram templates... "; cout.flush();
 
   TFile *infile    = new TFile(mcfilename);
   TTree *eventTree = (TTree*)infile->Get("Events");
 
-  TFile *f_rw_90X = TFile::Open(Form("%s/ReweightHistogram/pileup_rw_90X_%f.root", purwDir.Data(), meanPU), "read");
-  TH1D *h_rw = (TH1D*) f_rw_90X->Get("h_rw");
+  TFile *f_rw = TFile::Open(Form("%s/ReweightHistogram/pileup_rw_%d.root", purwDir.Data(), meanPU), "read");
+  TH1D *h_rw = (TH1D*) f_rw->Get("h_rw");
 
   Float_t mass, pt, eta, phi;
   Double_t weight, wgt;
@@ -222,8 +225,8 @@ void performCount(
 
   sprintf(binlabely, "27 GeV/c < p_{T} < 13000 GeV/c");
   sprintf(effstr,"#varepsilon = %.4f_{ -%.4f}^{ +%.4f}",resEff,resErrl,resErrh);
-//  sprintf(lumitext,"%.0f pb^{-1}  at  #sqrt{s} = 13 TeV",lumi);
-  sprintf(lumitext,"  %.0f lumi-sections at  #sqrt{s} = 13 TeV",lumi);
+  sprintf(lumitext,"%.1f pb^{-1}  at  #sqrt{s} = 13 TeV",lumi);
+//  sprintf(lumitext,"  %.0f lumi-sections at  #sqrt{s} = 13 TeV",lumi);
   sprintf(ylabel,"Events / 1 GeV/c^{2}");
 
   sprintf(pname,"%s_%s_pass_%d", effType.Data(), etaRegion ? "forward" : "central", iBin);
@@ -329,7 +332,10 @@ void performFit(
     bkgFail = new CExponential(m, kFALSE, etaRegion);
     nflfail += 1;
   } else if(bkgfail==2) {
-    bkgFail = new CQuadratic(m, kFALSE, etaRegion, 0.,0.,0.,0.,0.,0.);
+    auto vBkgPars = preFit(failHist);
+
+    bkgFail = new CQuadratic(m, kFALSE, etaRegion, vBkgPars[0], vBkgPars[1], vBkgPars[2], vBkgPars[3], vBkgPars[4], vBkgPars[5]);
+//    bkgFail = new CQuadratic(m, kFALSE, etaRegion, 0.,0.,0.,0.,0.,0.);
     nflfail += 3;
   }
 
@@ -397,8 +403,8 @@ void performFit(
 
   sprintf(binlabely, "27 GeV/c < p_{T} < 13000 GeV/c");
   sprintf(effstr,"#varepsilon = %.4f_{ -%.4f}^{ +%.4f}",resEff,resErrl,resErrh);
-//  sprintf(lumitext,"%.0f pb^{-1}  at  #sqrt{s} = 13 TeV",lumi);
-  sprintf(lumitext,"  %.0f lumi-sections at  #sqrt{s} = 13 TeV",lumi);
+  sprintf(lumitext,"%.1f pb^{-1}  at  #sqrt{s} = 13 TeV",lumi);
+//  sprintf(lumitext,"  %.0f lumi-sections at  #sqrt{s} = 13 TeV",lumi);
   sprintf(ylabel,"Events / 1 GeV/c^{2}");
 
   RooPlot *mframePass = m.frame(Bins(massBin));
@@ -464,3 +470,27 @@ void performFit(
   delete histfile;
 //  delete datfile;
 }
+
+//--------------------------------------------------------------------------------------------------
+std::vector<double> preFit(TH1D* failHist){
+
+//  std::vector<float> v = {1.,0.,1.,0.,1.,0.};return v;
+  TH1D *h = new TH1D("h", "", massBin, massLo, massHi);
+  TF1 *fq = new TF1("fq", "[0]+[1]*x+[2]*x*x", massLo, massHi);
+
+
+  for(int i = 0; i < 15; i++){
+    h->SetBinContent(i+1, failHist->GetBinContent(i+1));
+    h->SetBinError(i+1, failHist->GetBinError(i+1));
+  }
+  for(int i = 35; i < 50; i++){
+    h->SetBinContent(i+1, failHist->GetBinContent(i+1));
+    h->SetBinError(i+1, failHist->GetBinError(i+1));
+  }
+
+  h->Fit("fq");
+  std::cout<<fq->GetParameter(0)<<","<<fq->GetParError(0)<<" ,"<<fq->GetParameter(1)<<","<<fq->GetParError(1)<<","<<fq->GetParameter(2)<<","<<fq->GetParError(2)<<std::endl;
+  std::vector<double> v = {fq->GetParameter(0), fq->GetParError(0), fq->GetParameter(1), fq->GetParError(1), fq->GetParameter(2), fq->GetParError(2)};
+  return v;
+}
+

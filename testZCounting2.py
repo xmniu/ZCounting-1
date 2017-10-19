@@ -115,12 +115,12 @@ for run_i in range(0,len(fillRunlist)):
 	print avgPileup_i
 	print "opening file: "+eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root"
 
-    	HLTeffB_i=ROOT.calculateDataEfficiency_v3(0,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"HLT",0,0,0,0,0)
-    	HLTeffE_i=ROOT.calculateDataEfficiency_v3(0,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"HLT",1,0,0,0,0)
-	SITeffB_i=ROOT.calculateDataEfficiency_v3(0,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"SIT",0,1,1,1,1)
-	SITeffE_i=ROOT.calculateDataEfficiency_v3(0,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"SIT",1,1,1,1,1)
-	StaeffB_i=ROOT.calculateDataEfficiency_v3(0,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"Sta",0,1,2,1,2)
-	StaeffE_i=ROOT.calculateDataEfficiency_v3(0,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"Sta",1,1,2,1,2)
+    	HLTeffB_i=ROOT.calculateDataEfficiency_v3(0,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"HLT",0,0,0,0,0,recLumi_i)
+    	HLTeffE_i=ROOT.calculateDataEfficiency_v3(0,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"HLT",1,0,0,0,0,recLumi_i)
+	SITeffB_i=ROOT.calculateDataEfficiency_v3(0,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"SIT",0,2,1,2,1,recLumi_i,"/afs/cern.ch/work/x/xniu/public/CMSSW_9_2_8/src/ZCountHarvest/LookupTable/MCFiles/92X_norw_IsoMu27_noIso/MuStaEff/MC/probes.root","/afs/cern.ch/work/x/xniu/public/CMSSW_9_2_8/src/ZCountHarvest/LookupTable")
+	SITeffE_i=ROOT.calculateDataEfficiency_v3(0,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"SIT",1,2,1,2,1,recLumi_i,"/afs/cern.ch/work/x/xniu/public/CMSSW_9_2_8/src/ZCountHarvest/LookupTable/MCFiles/92X_norw_IsoMu27_noIso/MuStaEff/MC/probes.root","/afs/cern.ch/work/x/xniu/public/CMSSW_9_2_8/src/ZCountHarvest/LookupTable")
+	StaeffB_i=ROOT.calculateDataEfficiency_v3(0,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"Sta",0,2,2,2,2,recLumi_i,"/afs/cern.ch/work/x/xniu/public/CMSSW_9_2_8/src/ZCountHarvest/LookupTable/MCFiles/92X_norw_IsoMu27_noIso/MuStaEff/MC/probes.root","/afs/cern.ch/work/x/xniu/public/CMSSW_9_2_8/src/ZCountHarvest/LookupTable")
+	StaeffE_i=ROOT.calculateDataEfficiency_v3(0,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"Sta",1,2,2,2,2,recLumi_i,"/afs/cern.ch/work/x/xniu/public/CMSSW_9_2_8/src/ZCountHarvest/LookupTable/MCFiles/92X_norw_IsoMu27_noIso/MuStaEff/MC/probes.root","/afs/cern.ch/work/x/xniu/public/CMSSW_9_2_8/src/ZCountHarvest/LookupTable")
 	Zyield_i=ROOT.calculateDataEfficiency_v3(1,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"HLT",0,0,0,0,0)
 
 	crossX.append(Zyield_i/(StaeffB_i**2 * SITeffB_i**2 * (1-(1-HLTeffB_i)*(1-HLTeffB_i))*recLumi_i))
@@ -166,6 +166,7 @@ for run_i in range(0,len(fillRunlist)):
 		#5427, 16/10/19 07:06:35, 16/10/19 07:22:54, 6.80618, 0.0105032, 10.024, 6495.66
 	
 	print crossX
+	print crossX2
 
 
 with open('csvfile.csv','wb') as file:
