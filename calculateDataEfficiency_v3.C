@@ -49,6 +49,10 @@ const Float_t ptCut    = 30.;
 const Float_t etaCut   = 2.4;
 const Float_t etaBound = 0.9;
 
+// Set up pile-up bounds available get MC template for fitting
+const Int_t minPU = 1;
+const Int_t maxPU = 60;
+
 void generateTemplate(
         const TString mcfilename, const TString purwDir, const Int_t meanPU);
 
@@ -138,7 +142,11 @@ void generateTemplate(
   TFile *infile    = new TFile(mcfilename);
   TTree *eventTree = (TTree*)infile->Get("Events");
 
-  TFile *f_rw = TFile::Open(Form("%s/ReweightHistogram/pileup_rw_%d.root", purwDir.Data(), meanPU), "read");
+  Int_t modPU = meanPU;
+  if(modPU < minPU) modPU = minPU;
+  else if(modPU > maxPU) modPU = maxPU;
+
+  TFile *f_rw = TFile::Open(Form("%s/ReweightHistogram/pileup_rw_%d.root", purwDir.Data(), modPU), "read");
   TH1D *h_rw = (TH1D*) f_rw->Get("h_rw");
 
   Float_t mass, pt, eta, phi;
@@ -193,6 +201,9 @@ void generateTemplate(
   h_mass_fail_forward->Write();
   outfile.Write();
   outfile.Close();
+
+  f_rw->Close();
+  delete f_rw;
 
   cout << "Done!" << endl;
 }
@@ -374,6 +385,20 @@ void performFit(
                              RooFit::Minos(RooArgSet(eff)),
                              RooFit::Save());
 
+  fitResult = totalPdf.fitTo(*dataCombined,
+                             RooFit::PrintEvalErrors(-1),
+                             RooFit::Extended(),
+                             RooFit::Strategy(strategy), // MINOS STRATEGY
+                             RooFit::Minos(RooArgSet(eff)),
+                             RooFit::Save());
+
+  fitResult = totalPdf.fitTo(*dataCombined,
+                             RooFit::PrintEvalErrors(-1),
+                             RooFit::Extended(),
+                             RooFit::Strategy(strategy), // MINOS STRATEGY
+                             RooFit::Minos(RooArgSet(eff)),
+                             RooFit::Save());
+
   if((fabs(eff.getErrorLo())<5e-4) || (eff.getErrorHi()<5e-4))
     fitResult = totalPdf.fitTo(*dataCombined, RooFit::PrintEvalErrors(-1), RooFit::Extended(), RooFit::Strategy(1), RooFit::Save());
 
@@ -446,7 +471,7 @@ void performFit(
   sprintf(yield,"%u Events",(Int_t)failHist->GetEntries());
   sprintf(nsigstr,"N_{sig} = %.1f #pm %.1f",NsigFail.getVal(),NsigFail.getPropagatedError(*fitResult));
   sprintf(nbkgstr,"N_{bkg} = %.1f #pm %.1f",NbkgFail.getVal(),NbkgFail.getPropagatedError(*fitResult));
-  sprintf(chi2str,"#chi^{2}/DOF = %.3f",mframePass->chiSquare(nflfail));
+  sprintf(chi2str,"#chi^{2}/DOF = %.3f",mframeFail->chiSquare(nflfail));
   CPlot plotFail(pname,mframeFail,"Failing probes","tag-probe mass [GeV/c^{2}]",ylabel);
   plotFail.AddTextBox(binlabelx,0.21,0.75,0.51,0.80,0,kBlack,-1);
   plotFail.AddTextBox(binlabely,0.21,0.70,0.51,0.75,0,kBlack,-1);
