@@ -10,47 +10,49 @@ import random
 import math
 import pandas
 import os.path
+import logging as log
+import argparse
 
+parser = argparse.ArgumentParser()
+parser.add_argument("-b","--beginRun",help="first run to analyze [%default]",default=299918)
+parser.add_argument("-e","--endRun",help=" analyze stops when comes to this run [%default]",default=1000000)
+parser.add_argument("-v","--verbose",help="increase logging level from INFO to DEBUG",default=False,action="store_true")
+
+args = parser.parse_args()
+if args.verbose:
+    log.basicConfig(format="%(levelname)s: %(message)s", level=log.DEBUG)
+else:
+    log.basicConfig(format="%(levelname)s: %(message)s", level=log.INFO)
+
+#ByLS csv inputs
 #inFile="/eos/cms/store/group/comm_luminosity/ZCounting/2017LumiByLS_trig.csv"
-inFile="/eos/cms/store/group/comm_luminosity/ZCounting/2017LumiByLS_notrig_PU.csv"
-chunkSize=50
+#inFile="/eos/cms/store/group/comm_luminosity/ZCounting/2017LumiByLS_notrig_PU.csv"
+inFile="/eos/cms/store/group/comm_luminosity/ZCounting/2017LumiByLS_trig_PU.csv"
+
+#Data inputs
 eosDir="/eos/cms/store/group/comm_luminosity/ZCounting/DQMFiles2017/cmsweb.cern.ch/dqm/offline/data/browse/ROOT/OfflineData/Run2017/SingleMuon/"
 
-HLTeffB=array('d')
-HLTeffE=array('d')
-SITeffB=array('d')
-SITeffE=array('d')
-StaeffB=array('d')
-StaeffE=array('d')
-Zeff=array('d')
-Zeff2=array('d')
-crossX=array('d')
+#MC inputs: to build MC*Gaussian template for efficiency fitting
+mcDir="/afs/cern.ch/work/x/xniu/public/CMSSW_9_2_8/src/ZCountHarvest/LookupTable/"
+mcShapeSubDir="MCFiles/92X_norw_IsoMu27_noIso/"
+
+#Constant settings
+currentYear=2017
+chunkSize=50
+secPerLS=float(23.3)
 
 
-Zyield=array('d')
-Zrate=array('d')
-lumiDel=array('d')
-lumiRec=array('d')
-instDel=array('d')
-beginTime=[]
-endTime=[]
-fillarray=array('d')
-windowarray=array('d')
-
+log.info("Loading C marco...")
 ROOT.gROOT.Macro( os.path.expanduser( '~/.rootlogon.C' ) )
 ROOT.gROOT.LoadMacro("calculateDataEfficiency_v3.C")
 ROOT.gROOT.LoadMacro("calculateZEfficiency.C")
 ROOT.gROOT.SetBatch(True)
 
-#lumiFile=open("./run302031.csv")
-#lumiLines=lumiFile.readlines()
-#data=pandas.read_csv("./run302031.csv",sep=',',low_memory=False, skiprows=[0,len(lumiLines)-5,len(lumiLines)-4,len(lumiLines)-3,len(lumiLines)-2,len(lumiLines)-1,len(lumiLines)])
-
+log.info("Loading input byls csv...")
 lumiFile=open(inFile)
 lumiLines=lumiFile.readlines()
 data=pandas.read_csv(inFile, sep=',',low_memory=False, skiprows=[0,len(lumiLines)-5,len(lumiLines)-4,len(lumiLines)-3,len(lumiLines)-2,len(lumiLines)-1,len(lumiLines)])
-
-print data.axes
+log.debug("%s",data.axes)
 
 # TAKE INPUT CSV FILE AND STRUCTURE PER-RUN BASIS, THEN CREATE LIST OF LUMI AND LS`s PER RUN
 LSlist=data.groupby('#run:fill')['ls'].apply(list)
@@ -58,174 +60,190 @@ recLumiList=data.groupby('#run:fill')['recorded(/pb)'].apply(list)
 delLumiList=data.groupby('#run:fill')['delivered(/pb)'].apply(list)
 avgpuList=data.groupby('#run:fill')['avgpu'].apply(list)
 timeList=data.groupby('#run:fill')['time'].apply(list)
+
 for i in range(0,len(LSlist)):
 	LSlist[i]=[int(x.split(':')[0]) for x in LSlist[i]]
 fillRunlist=data.drop_duplicates('#run:fill')['#run:fill'].tolist()
 
-print fillRunlist
-print "length LS list: "+str(len(LSlist))
-print "length Run list: "+str(len(fillRunlist))
+log.debug("%s",fillRunlist)
+log.debug("length LS list: %i",len(LSlist))
+log.debug("length Run list: %i",len(fillRunlist))
 
-
-
+log.info("Looping over runs...")
 for run_i in range(0,len(fillRunlist)):
 
     run=int(fillRunlist[run_i].split(':')[0])
     fill=int(fillRunlist[run_i].split(':')[1])
-    print run
-    print fill
 
-
-    ## CHANGE THIS
-    if run<303824: #or run>303062:
+    if run<int(args.beginRun) or run>=int(args.endRun):
+        continue;
+    if run<299918:#Z Coungig module is enabled since this run 
 	continue
+
     if run<302030:
 	era="C"
-    if run>=302030 and run<303434:
+    elif run>=302030 and run<303434:
 	era="D"
-    if run>=303434:
+    elif run>=303434 and run<304910:
 	era="E"
+    elif run>=304910:
+        era="F"
+    else:
+        log.error("===RunNum %s cannot be associated with an era",run)
+        continue
+
+    log.info("===Running Run %i",run)
+    log.info("===Running Fill %i",fill)
         
     LSchunks 	= [LSlist[run_i][x:x+chunkSize] for x in range(0, len(LSlist[run_i]), chunkSize)]
-
     Del_chunks  = [delLumiList[run_i][x:x+chunkSize] for x in range(0, len(delLumiList[run_i]), chunkSize)]
-
     Rec_chunks  = [recLumiList[run_i][x:x+chunkSize] for x in range(0, len(recLumiList[run_i]), chunkSize)]
-
     Avgpu_chunks = [avgpuList[run_i][x:x+chunkSize] for x in range(0, len(avgpuList[run_i]), chunkSize)]
-
     time_chunks = [timeList[run_i][x:x+chunkSize] for x in range(0, len(timeList[run_i]), chunkSize)]
 
-    Zyield=array('d')  
-    Zrate=array('d')
-    lumiDel=array('d')
-    lumiRec=array('d')
-    instDel=array('d')
+    log.debug("===Setting up arrays for output csv...")
+    fillarray=array('d')
     beginTime=[]
     endTime=[]
-    fillarray=array('d')
+    Zrate=array('d')
+    instDel=array('d')
+    lumiDel=array('d')
+    ZyieldDel=array('d')
+
+    ZyieldRec=array('d')
+    lumiRec=array('d')
     windowarray=array('d')
+    deadTime=array('d')
+
+    HLTeffB=array('d')
+    HLTeffE=array('d')
+    SITeffB=array('d')
+    SITeffE=array('d')
+    StaeffB=array('d')
+    StaeffE=array('d')
+
+    ZMCeff=array('d')
+    ZMCeffBB=array('d')
+    ZMCeffBE=array('d')
+    ZMCeffEE=array('d')
+
+    ZBBeff=array('d')
+    ZBEeff=array('d')
+    ZEEeff=array('d')
+
     nMeasurements=0
 
-    if not os.path.isfile(eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root"):
-	print "hello"
+    log.info("===Loading input DQMIO.root file...")
+    eosFile = ""
+    if os.path.isfile(eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root"):
+        eosFile = eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root"
+    elif os.path.isfile(eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v2__DQMIO.root"):
+        eosFile = eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v2__DQMIO.root"
+    elif os.path.isfile(eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v3__DQMIO.root"):
+        eosFile = eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v3__DQMIO.root"
+    else:
+        log.warning("===Missing DQM files for Run%i",run)
 	continue
 
+    log.info("===Looping over LSchunks...")
     for chunk_i in range(0,len(LSchunks)):
+        log.info("======Running LSchunk No.%i",chunk_i)
+        log.debug("======LS list: %s",LSchunks[chunk_i])
+
 	if float(LSchunks[chunk_i][-1]) > 2499.:
                 continue 
    	nMeasurements=nMeasurements+1
 
 	recLumi_i = sum(Rec_chunks[chunk_i])
 	delLumi_i = sum(Del_chunks[chunk_i])	
+        deadtime_i = recLumi_i/delLumi_i
+        log.debug("======RecLumi: %f",recLumi_i)
+        log.debug("======DelLumi: %f",delLumi_i)
+        log.debug("======DeadTime: %f",deadtime_i)
+
+
 	avgPileup_i = sum(Avgpu_chunks[chunk_i])
 	avgPileup_i = avgPileup_i/len(Avgpu_chunks[chunk_i])
-	deadtime_i = recLumi_i/delLumi_i
-	print time_chunks[chunk_i]
+        log.debug("======avgPU: %f",avgPileup_i)
 
 	datestamp_low=time_chunks[chunk_i][0].split(" ")
-	date_low=ROOT.TDatime(2017,int(datestamp_low[0].split("/")[0]),int(datestamp_low[0].split("/")[1]),int(datestamp_low[1].split(":")[0]),int(datestamp_low[1].split(":")[1]),int(datestamp_low[1].split(":")[2]))
-
+	date_low=ROOT.TDatime(currentYear,int(datestamp_low[0].split("/")[0]),int(datestamp_low[0].split("/")[1]),int(datestamp_low[1].split(":")[0]),int(datestamp_low[1].split(":")[1]),int(datestamp_low[1].split(":")[2]))
         datestamp_up=time_chunks[chunk_i][-1].split(" ")
-	date_up=ROOT.TDatime(2017,int(datestamp_up[0].split("/")[0]),int(datestamp_up[0].split("/")[1]),int(datestamp_up[1].split(":")[0]),int(datestamp_up[1].split(":")[1]),int(datestamp_up[1].split(":")[2]))
+	date_up=ROOT.TDatime(currentYear,int(datestamp_up[0].split("/")[0]),int(datestamp_up[0].split("/")[1]),int(datestamp_up[1].split(":")[0]),int(datestamp_up[1].split(":")[1]),int(datestamp_up[1].split(":")[2]))
+        timeWindow_i=(date_up.Convert()-date_low.Convert())+secPerLS
+        log.debug("======time_chunks: %s",time_chunks[chunk_i])
+        log.debug("======beginTime: %s",date_low.Convert())
+        log.debug("======endTime: %s",date_up.Convert())
+        log.debug("======timeWindow: %f",timeWindow_i)
 
+        log.debug("Openning DQMIO.root file: %s", eosFile)
+        HLTeffB_i=ROOT.calculateDataEfficiency_v3(0,str(eosFile),".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"HLT",0,0,0,0,0,recLumi_i)
+        HLTeffE_i=ROOT.calculateDataEfficiency_v3(0,str(eosFile),".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"HLT",1,0,0,0,0,recLumi_i)
+        SITeffB_i=ROOT.calculateDataEfficiency_v3(0,str(eosFile),".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"SIT",0,2,1,2,1,recLumi_i,mcDir+mcShapeSubDir+"MuSITEff/MC/probes.root",mcDir)
+        SITeffE_i=ROOT.calculateDataEfficiency_v3(0,str(eosFile),".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"SIT",1,2,1,2,1,recLumi_i,mcDir+mcShapeSubDir+"MuSITEff/MC/probes.root",mcDir)
+        StaeffB_i=ROOT.calculateDataEfficiency_v3(0,str(eosFile),".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"Sta",0,2,2,2,2,recLumi_i,mcDir+mcShapeSubDir+"MuStaEff/MC/probes.root",mcDir)
+        StaeffE_i=ROOT.calculateDataEfficiency_v3(0,str(eosFile),".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"Sta",1,2,2,2,2,recLumi_i,mcDir+mcShapeSubDir+"MuStaEff/MC/probes.root",mcDir)
+        Zyield_i=ROOT.calculateDataEfficiency_v3(1,str(eosFile),".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"HLT",0,0,0,0,0)
+        log.debug("======perMuonEff: %f, %f ,%f, %f, %f, %f",HLTeffB_i,HLTeffE_i,SITeffB_i,SITeffE_i,StaeffB_i,StaeffE_i)
+        log.debug("======ZRawYield: %f",Zyield_i)
 
-	print time_chunks[chunk_i]
-	print (date_up.Convert()-date_low.Convert())+23
-    	print date_up.Convert()
-	print date_low.Convert()
-	print LSchunks[chunk_i]
-	print recLumi_i
-	print delLumi_i
-	print avgPileup_i
-#	if float(LSchunks[chunk_i][-1]) > 1250.:
-#		continue
-
-	print "opening file: "+eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root"
-
-        HLTeffB_i=ROOT.calculateDataEfficiency_v3(0,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"HLT",0,0,0,0,0,recLumi_i)
-        HLTeffE_i=ROOT.calculateDataEfficiency_v3(0,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"HLT",1,0,0,0,0,recLumi_i)
-        SITeffB_i=ROOT.calculateDataEfficiency_v3(0,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"SIT",0,2,1,2,1,recLumi_i,"/afs/cern.ch/work/x/xniu/public/CMSSW_9_2_8/src/ZCountHarvest/LookupTable/MCFiles/92X_norw_IsoMu27_noIso/MuStaEff/MC/probes.root","/afs/cern.ch/work/x/xniu/public/CMSSW_9_2_8/src/ZCountHarvest/LookupTable")
-        SITeffE_i=ROOT.calculateDataEfficiency_v3(0,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"SIT",1,2,1,2,1,recLumi_i,"/afs/cern.ch/work/x/xniu/public/CMSSW_9_2_8/src/ZCountHarvest/LookupTable/MCFiles/92X_norw_IsoMu27_noIso/MuStaEff/MC/probes.root","/afs/cern.ch/work/x/xniu/public/CMSSW_9_2_8/src/ZCountHarvest/LookupTable")
-        StaeffB_i=ROOT.calculateDataEfficiency_v3(0,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"Sta",0,2,2,2,2,recLumi_i,"/afs/cern.ch/work/x/xniu/public/CMSSW_9_2_8/src/ZCountHarvest/LookupTable/MCFiles/92X_norw_IsoMu27_noIso/MuStaEff/MC/probes.root","/afs/cern.ch/work/x/xniu/public/CMSSW_9_2_8/src/ZCountHarvest/LookupTable")
-        StaeffE_i=ROOT.calculateDataEfficiency_v3(0,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"Sta",1,2,2,2,2,recLumi_i,"/afs/cern.ch/work/x/xniu/public/CMSSW_9_2_8/src/ZCountHarvest/LookupTable/MCFiles/92X_norw_IsoMu27_noIso/MuStaEff/MC/probes.root","/afs/cern.ch/work/x/xniu/public/CMSSW_9_2_8/src/ZCountHarvest/LookupTable")
-        Zyield_i=ROOT.calculateDataEfficiency_v3(1,eosDir+"000"+str(run)[:-2]+"xx/DQM_V0001_R000"+str(run)+"__SingleMuon__Run2017"+era+"-PromptReco-v1__DQMIO.root",".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"HLT",0,0,0,0,0)
-
-
-#	crossX.append(Zyield_i/(Staeff_i**2 * SITeff_i**2 * (1-(1-HLTeff_i)*(1-HLTeff_i))*recLumi_i))
-#	effTot_i=(Staeff_i**2 * SITeff_i**2 * (1-(1-HLTeff_i)*(1-HLTeff_i)))
-	timeWindow_i=(date_up.Convert()-date_low.Convert())+23 #in seconds
+	#ZtoMuMu efficiency considering di-mu correlation from MC
         ZMCEff=ROOT.calculateZEfficiency(0,avgPileup_i,HLTeffB_i,HLTeffE_i,SITeffB_i,SITeffE_i,StaeffB_i,StaeffE_i)
+        ZMCEffBB = ROOT.calculateZEfficiency(1,avgPileup_i,HLTeffB_i,HLTeffE_i,SITeffB_i,SITeffE_i,StaeffB_i,StaeffE_i)
+        ZMCEffBE = ROOT.calculateZEfficiency(2,avgPileup_i,HLTeffB_i,HLTeffE_i,SITeffB_i,SITeffE_i,StaeffB_i,StaeffE_i)
+        ZMCEffEE = ROOT.calculateZEfficiency(3,avgPileup_i,HLTeffB_i,HLTeffE_i,SITeffB_i,SITeffE_i,StaeffB_i,StaeffE_i)
+
+	#ZtoMuMu efficiency purely from data
+        ZBBEff=(StaeffB_i*StaeffB_i * SITeffB_i*StaeffB_i * (1-(1-HLTeffB_i)*(1-HLTeffB_i)))
+        ZBEEff=(StaeffB_i*StaeffE_i * SITeffB_i*SITeffE_i * (1-(1-HLTeffB_i)*(1-HLTeffE_i)))
+        ZEEEff=(StaeffE_i*StaeffE_i * SITeffE_i*StaeffE_i * (1-(1-HLTeffE_i)*(1-HLTeffE_i)))
+        log.debug("======ZToMuMuEff: %f",ZMCEff)
+        log.debug("======ZToMuMuEff: %f, %f ,%f, %f, %f, %f",ZMCEffBB, ZMCEffBE, ZMCEffEE, ZBBEff, ZBEEff, ZEEEff)
+
+	#End products
         ZXSec  = Zyield_i*(1-0.01)/(ZMCEff*recLumi_i)
-	crossX.append(ZXSec)
         ZRate  = Zyield_i*(1-0.01)/(ZMCEff*timeWindow_i*deadtime_i)
-#       ZMCEffBB = ROOT.calculateZEfficiency(1,avgPileup_i,HLTeffB_i,HLTeffE_i,SITeffB_i,SITeffE_i,StaeffB_i,StaeffE_i)
-#       ZMCEffBE = ROOT.calculateZEfficiency(2,avgPileup_i,HLTeffB_i,HLTeffE_i,SITeffB_i,SITeffE_i,StaeffB_i,StaeffE_i)
-#       ZMCEffEE = ROOT.calculateZEfficiency(3,avgPileup_i,HLTeffB_i,HLTeffE_i,SITeffB_i,SITeffE_i,StaeffB_i,StaeffE_i)
-#	zRate_i = Zyield_i/(effTot_i*deadtime_i*timeWindow_i)
-	
-	print Zyield_i
-#	print effTot_i
-	print ZMCEff
-	print deadtime_i
-	print timeWindow_i
-#	print zRate_i
-	print ZRate
-	print ZXSec
-	#Fill output Arrays
+        log.debug("======ZXSec: %f",ZXSec)
+        log.debug("======ZRate: %f",ZRate)
 
-#	Zrate.append(zRate_i)
-	Zrate.append(ZRate)
-	Zyield.append(Zyield_i)
-	StaeffB.append(StaeffB_i)
-	StaeffE.append(StaeffE_i)
-	#Staeff.append(0.99)
+	#Variables to write in csv file
+        fillarray.append(fill)
+        beginTime.append(time_chunks[chunk_i][0])
+        endTime.append(time_chunks[chunk_i][-1])
+        Zrate.append(ZRate)
+        instDel.append(delLumi_i/timeWindow_i)
+        lumiDel.append(delLumi_i)
+        ZyieldDel.append(Zyield_i/(ZMCEff*deadtime_i))
 
-	SITeffB.append(SITeffB_i)
-	SITeffE.append(SITeffE_i)
+	#Additional variables to write in efficiency csv file
+        ZyieldRec.append(Zyield_i)
+        lumiRec.append(recLumi_i)
+        windowarray.append(timeWindow_i)
+        deadTime.append(deadtime_i)
+	#Efficiency related
     	HLTeffB.append(HLTeffB_i)
     	HLTeffE.append(HLTeffE_i)
-	Zeff.append(ZMCEff)
-	Zeff2.append(StaeffB_i**2 * SITeffB_i**2 * (1-(1-HLTeffB_i)*(1-HLTeffB_i)))
-	beginTime.append(time_chunks[chunk_i][0])
-	endTime.append(time_chunks[chunk_i][-1])
-	fillarray.append(fill)
-	lumiDel.append(delLumi_i)
-	lumiRec.append(recLumi_i)
-	instDel.append(delLumi_i/timeWindow_i)
-	windowarray.append(timeWindow_i)
-		#5427, 16/10/19 07:06:35, 16/10/19 07:22:54, 6.80618, 0.0105032, 10.024, 6495.66
-	
-	
+        SITeffB.append(SITeffB_i)
+        SITeffE.append(SITeffE_i)
+        StaeffB.append(StaeffB_i)
+        StaeffE.append(StaeffE_i)
+
+        ZMCeff.append(ZMCEff)
+        ZMCeffBB.append(ZMCEffBB)
+        ZMCeffBE.append(ZMCEffBE)
+        ZMCeffEE.append(ZMCEffEE)
+
+        ZBBeff.append(ZBBEff)
+        ZBEeff.append(ZBEEff)
+        ZEEeff.append(ZEEEff)
+
 
     with open('csvfile'+str(run)+'.csv','wb') as file:
         for c in range(0,nMeasurements):
-                file.write(str(int(fillarray[c]))+","+str(beginTime[c])+","+str(endTime[c])+","+str(Zrate[c])+","+str(instDel[c])+","+str(lumiDel[c])+","+str(Zyield[c]))
+                file.write(str(int(fillarray[c]))+","+str(beginTime[c])+","+str(endTime[c])+","+str(Zrate[c])+","+str(instDel[c])+","+str(lumiDel[c])+","+str(ZyieldDel[c]))
 		file.write('\n')
 
-
-
-
-#with open('csvfile.csv','wb') as file:
-#	for c in range(0,nMeasurements):
-#		file.write(str(int(fillarray[c]))+","+str(beginTime[c])+","+str(endTime[c])+","+str(Zrate[c])+","+str(instDel[c])+","+str(lumiDel[c])+","+str(Zyield[c]))
-#        	file.write('\n')
-
-print "crossX: "+str(crossX)
-print "Zyield: "+str(Zyield)
-print "Zrate: "+str(Zrate)
-print "lumiDel: "+str(lumiDel)
-print "lumiRec: "+str(lumiRec)
-print "instDel: "+str(instDel)
-print "fill: "+str(fillarray)
-print "beginTime: "+str(beginTime)
-print "endTime: "+str(endTime)
-print "HLTeffB: "+str(HLTeffB)
-print "HLTeffE: "+str(HLTeffE)
-print "SITeffB: "+str(SITeffB)
-print "SITeffE: "+str(SITeffE)
-print "StaeffB: "+str(StaeffB)
-print "StaeffE: "+str(StaeffE)
-print "Zeff: "+str(Zeff)
-print "Zeff2: "+str(Zeff2)
-print "timeWindow: "+str(windowarray)
+    with open('effcsvfile'+str(run)+'.csv','wb') as file:
+        for c in range(0,nMeasurements):
+                file.write(str(int(fillarray[c]))+","+str(beginTime[c])+","+str(endTime[c])+","+str(Zrate[c])+","+str(instDel[c])+","+str(lumiDel[c])+","+str(ZyieldDel[c])+","+str(lumiRec[c])+","+str(windowarray[c])+","+str(HLTeffB[c])+","+str(HLTeffE[c])+","+str(SITeffB[c])+","+str(SITeffE[c])+","+str(StaeffB[c])+","+str(StaeffE[c])+","+str(ZMCeff[c])+","+str(ZMCeffBB[c])+","+str(ZMCeffBE[c])+","+str(ZMCeffEE[c])+","+str(ZBBeff[c])+","+str(ZBEeff[c])+","+str(ZEEeff[c]))
+                file.write('\n')

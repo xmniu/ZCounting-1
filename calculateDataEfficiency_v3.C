@@ -380,6 +380,8 @@ void performFit(
   RooMsgService::instance().setSilentMode(kTRUE);
   fitResult = totalPdf.fitTo(*dataCombined,
                              RooFit::PrintEvalErrors(-1),
+                             RooFit::PrintLevel(-1),
+                             RooFit::Warnings(0),
                              RooFit::Extended(),
                              RooFit::Strategy(strategy), // MINOS STRATEGY
                              RooFit::Minos(RooArgSet(eff)),
@@ -387,6 +389,8 @@ void performFit(
 
   fitResult = totalPdf.fitTo(*dataCombined,
                              RooFit::PrintEvalErrors(-1),
+                             RooFit::PrintLevel(-1),
+                             RooFit::Warnings(0),
                              RooFit::Extended(),
                              RooFit::Strategy(strategy), // MINOS STRATEGY
                              RooFit::Minos(RooArgSet(eff)),
@@ -394,6 +398,8 @@ void performFit(
 
   fitResult = totalPdf.fitTo(*dataCombined,
                              RooFit::PrintEvalErrors(-1),
+                             RooFit::PrintLevel(-1),
+                             RooFit::Warnings(0),
                              RooFit::Extended(),
                              RooFit::Strategy(strategy), // MINOS STRATEGY
                              RooFit::Minos(RooArgSet(eff)),
