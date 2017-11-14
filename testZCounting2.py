@@ -159,6 +159,10 @@ for run_i in range(0,len(fillRunlist)):
             skipStatus=2
             while LSchunks[chunk_i][-1] > maximumLS:
                 del LSchunks[chunk_i][-1]
+                del Del_chunks[chunk_i][-1]
+                del Rec_chunks[chunk_i][-1]
+                del Avgpu_chunks[chunk_i][-1]
+                del time_chunks[chunk_i][-1]
 
         nMeasurements=nMeasurements+1
 
