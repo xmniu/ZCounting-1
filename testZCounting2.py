@@ -38,10 +38,12 @@ mcDir="/afs/cern.ch/work/x/xniu/public/CMSSW_9_2_8/src/ZCountHarvest/LookupTable
 mcShapeSubDir="MCFiles/92X_norw_IsoMu27_noIso/"
 
 #Constant settings
-currentYear=2017
-chunkSize=50
-maximumLS=2500
 secPerLS=float(23.3)
+currentYear=2017
+maximumLS=2500
+chunkSize=50
+staFitChi2Th=2.   #threshold on chi2 to trigger protection mechanism
+staFitEffTh=0.999 #threshold on eff. to trigger protection mechanism
 
 
 log.info("Loading C marco...")
@@ -103,6 +105,27 @@ for run_i in range(0,len(fillRunlist)):
     Avgpu_chunks = [avgpuList[run_i][x:x+chunkSize] for x in range(0, len(avgpuList[run_i]), chunkSize)]
     time_chunks = [timeList[run_i][x:x+chunkSize] for x in range(0, len(timeList[run_i]), chunkSize)]
 
+    log.debug("===Pre-looping over LSchunks to fit current 2500 LS budget...")
+    log.debug("===LSchunk lists before truncate: %s",LSchunks)
+    for chunk_j in range(0,len(LSchunks)):
+        if float(LSchunks[chunk_j][-1]) > maximumLS:
+            log.warning("======Losing data after LS %i for Run%i",maximumLS,run)
+            while LSchunks[chunk_j][-1] > maximumLS:
+                del LSchunks[chunk_j][-1]
+                del Del_chunks[chunk_j][-1]
+                del Rec_chunks[chunk_j][-1]
+                del Avgpu_chunks[chunk_j][-1]
+                del time_chunks[chunk_j][-1]
+            for chunk_k in range(chunk_j+1, len(LSchunks)):
+                del LSchunks[-1] 
+                del Del_chunks[-1]
+                del Rec_chunks[-1]
+                del Avgpu_chunks[-1]
+                del time_chunks[-1]
+            break
+    log.debug("===LSchunk lists after truncate: %s",LSchunks)
+
+
     log.debug("===Setting up arrays for output csv...")
     fillarray=array('d')
     beginTime=[]
@@ -136,7 +159,8 @@ for run_i in range(0,len(fillRunlist)):
     ZEEeff=array('d')
 
     nMeasurements=0
-    skipStatus=0
+    prevStaEffB=0.98
+    prevStaEffE=0.98
 
     log.info("===Loading input DQMIO.root file...")
     eosFile = ""
@@ -152,18 +176,6 @@ for run_i in range(0,len(fillRunlist)):
 
     log.info("===Looping over LSchunks...")
     for chunk_i in range(0,len(LSchunks)):
-        if skipStatus==2:
-            break
-        if float(LSchunks[chunk_i][-1]) > maximumLS:
-            log.warning("======Losing data after LS %i for Run%i",maximumLS,run)
-            skipStatus=2
-            while LSchunks[chunk_i][-1] > maximumLS:
-                del LSchunks[chunk_i][-1]
-                del Del_chunks[chunk_i][-1]
-                del Rec_chunks[chunk_i][-1]
-                del Avgpu_chunks[chunk_i][-1]
-                del time_chunks[chunk_i][-1]
-
         nMeasurements=nMeasurements+1
 
         log.info("======Running LSchunk No.%i",chunk_i)
@@ -192,13 +204,35 @@ for run_i in range(0,len(fillRunlist)):
         log.debug("======timeWindow: %f",timeWindow_i)
 
         log.debug("Openning DQMIO.root file: %s", eosFile)
-        HLTeffB_i=ROOT.calculateDataEfficiency_v3(0,str(eosFile),".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"HLT",0,0,0,0,0,recLumi_i)
-        HLTeffE_i=ROOT.calculateDataEfficiency_v3(0,str(eosFile),".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"HLT",1,0,0,0,0,recLumi_i)
-        SITeffB_i=ROOT.calculateDataEfficiency_v3(0,str(eosFile),".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"SIT",0,2,1,2,1,recLumi_i,mcDir+mcShapeSubDir+"MuSITEff/MC/probes.root",mcDir)
-        SITeffE_i=ROOT.calculateDataEfficiency_v3(0,str(eosFile),".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"SIT",1,2,1,2,1,recLumi_i,mcDir+mcShapeSubDir+"MuSITEff/MC/probes.root",mcDir)
-        StaeffB_i=ROOT.calculateDataEfficiency_v3(0,str(eosFile),".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"Sta",0,2,2,2,2,recLumi_i,mcDir+mcShapeSubDir+"MuStaEff/MC/probes.root",mcDir)
-        StaeffE_i=ROOT.calculateDataEfficiency_v3(0,str(eosFile),".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"Sta",1,2,2,2,2,recLumi_i,mcDir+mcShapeSubDir+"MuStaEff/MC/probes.root",mcDir)
-        Zyield_i=ROOT.calculateDataEfficiency_v3(1,str(eosFile),".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"HLT",0,0,0,0,0)
+        HLTeffresB_i=ROOT.calculateDataEfficiency_v3(0,str(eosFile),".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"HLT",0,0,0,0,0,recLumi_i)
+        HLTeffresE_i=ROOT.calculateDataEfficiency_v3(0,str(eosFile),".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"HLT",1,0,0,0,0,recLumi_i)
+        SITeffresB_i=ROOT.calculateDataEfficiency_v3(0,str(eosFile),".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"SIT",0,1,1,1,1,recLumi_i)#,mcDir+mcShapeSubDir+"MuStaEff/MC/probes.root",mcDir)
+        SITeffresE_i=ROOT.calculateDataEfficiency_v3(0,str(eosFile),".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"SIT",1,1,1,1,1,recLumi_i)#,mcDir+mcShapeSubDir+"MuStaEff/MC/probes.root",mcDir)
+        StaeffresB_i=ROOT.calculateDataEfficiency_v3(0,str(eosFile),".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"Sta",0,2,2,2,2,recLumi_i,mcDir+mcShapeSubDir+"MuStaEff/MC/probes.root",mcDir)
+        StaeffresE_i=ROOT.calculateDataEfficiency_v3(0,str(eosFile),".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"Sta",1,2,2,2,2,recLumi_i,mcDir+mcShapeSubDir+"MuStaEff/MC/probes.root",mcDir)
+        Zyieldres_i=ROOT.calculateDataEfficiency_v3(1,str(eosFile),".",str(run),chunk_i,LSchunks[chunk_i][0],LSchunks[chunk_i][-1],avgPileup_i,"HLT",0,0,0,0,0)
+
+        HLTeffB_i = HLTeffresB_i[0]
+        HLTeffE_i = HLTeffresE_i[0]
+        SITeffB_i = SITeffresB_i[0]
+        SITeffE_i = SITeffresE_i[0]
+        StaeffB_i = StaeffresB_i[0]
+        StaeffE_i = StaeffresE_i[0]
+        Zyield_i  = Zyieldres_i[0]
+
+        if StaeffresB_i[3] > staFitChi2Th or StaeffresB_i[4] > staFitChi2Th or StaeffB_i >= staFitEffTh:
+            StaeffB_i = prevStaEffB
+            log.warning("======Bad fit might happen, origin eff = %f, with chi2 = %f, %f",StaeffresB_i[0],StaeffresB_i[3],StaeffresB_i[4])
+        else:
+            prevStaEffB = StaeffB_i
+
+        if StaeffresE_i[3] > staFitChi2Th or StaeffresE_i[4] > staFitChi2Th or StaeffE_i >= staFitEffTh:
+            StaeffE_i = prevStaEffE
+            log.warning("======Bad fit might happen, origin eff = %f, with chi2 = %f, %f",StaeffresE_i[0],StaeffresE_i[3],StaeffresE_i[4])
+        else:
+            prevStaEffE = StaeffE_i
+
+
         log.debug("======perMuonEff: %f, %f ,%f, %f, %f, %f",HLTeffB_i,HLTeffE_i,SITeffB_i,SITeffE_i,StaeffB_i,StaeffE_i)
         log.debug("======ZRawYield: %f",Zyield_i)
 
