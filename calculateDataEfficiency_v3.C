@@ -61,14 +61,14 @@ void performCount(
         TCanvas *cpass, TCanvas *cfail, const TString effType, const Bool_t etaRegion, const Int_t iBin, const Float_t lumi, const TString format);
 
 void performFit(
-        Double_t &resEff, Double_t &resErrl, Double_t &resErrh, TH1D *passHist, TH1D *failHist,
+        Double_t &resEff, Double_t &resErrl, Double_t &resErrh, Double_t &resChi2Pass, Double_t &resChi2Fail, TH1D *passHist, TH1D *failHist,
         const Int_t sigpass, const Int_t bkgpass, const Int_t sigfail, const Int_t bkgfail,
         TCanvas *cpass, TCanvas *cfail, const TString effType, const Bool_t etaRegion, const Int_t iBin, const Float_t lumi, const TString format);
 
 std::vector<double> preFit(TH1D *failHist);
 
 
-float calculateDataEfficiency_v3(
+std::vector<float> calculateDataEfficiency_v3(
                 const Int_t   getYield,     // just get the yield  
 		const TString inputFile,    // DQMIO file 
 		const TString outputDir,    // output directory
@@ -94,7 +94,10 @@ float calculateDataEfficiency_v3(
 
   TH1F *h_yield = (TH1F*)infile->Get("DQMData/Run "+runNum+"/ZCounting/Run summary/Histograms/h_yield_Z");
 
-  return h_yield->Integral(startLS,endLS);
+  std::vector<float> yieldEff = {};
+  yieldEff.push_back(h_yield->Integral(startLS,endLS));
+
+  return yieldEff;
   }
 
   gSystem->mkdir(outputDir,kTRUE);
@@ -119,16 +122,29 @@ float calculateDataEfficiency_v3(
   TCanvas *cfail = MakeCanvas("cfail","cfail",720,540);
   cfail->SetWindowPosition(cfail->GetWindowTopX()+cfail->GetBorderSize()+800,cpass->GetWindowTopX()+cfail->GetBorderSize()+540);
 
-  Double_t eff, errl, errh;
+  Double_t eff  = 0.;
+  Double_t errl = 0.;
+  Double_t errh = 0.;
+  Double_t chi2pass = 999.;
+  Double_t chi2fail = 999.;
+   
   if(sigModPass == 0){
     performCount(eff, errl, errh, h_mass_pass, h_mass_fail, cpass, cfail, effType, etaRegion, iBin, lumi, format);//cout << effType.Data() << ": " << eff << " + " << errh << " - " << errl << endl;
   }else{
-    performFit(eff, errl, errh, h_mass_pass, h_mass_fail, sigModPass, bkgModPass, sigModFail, bkgModFail, cpass, cfail, effType, etaRegion, iBin, lumi, format);//cout << effType.Data() << ": " << eff << " + " << errh << " - " << errl << endl;
+    performFit(eff, errl, errh, chi2pass, chi2fail, h_mass_pass, h_mass_fail, sigModPass, bkgModPass, sigModFail, bkgModFail, cpass, cfail, effType, etaRegion, iBin, lumi, format);//cout << effType.Data() << ": " << eff << " + " << errh << " - " << errl << endl;
   }
   delete cpass;
   delete cfail;
 
-  return eff;
+  std::vector<float> resultEff = {};
+
+  resultEff.push_back(eff);
+  resultEff.push_back(errl);
+  resultEff.push_back(errh);
+  resultEff.push_back(chi2pass);
+  resultEff.push_back(chi2fail);
+
+  return resultEff;
 
 } 
 //--------------------------------------------------------------------------------------------------
@@ -267,7 +283,7 @@ void performCount(
 
 //--------------------------------------------------------------------------------------------------
 void performFit(
-	Double_t &resEff, Double_t &resErrl, Double_t &resErrh, TH1D *passHist, TH1D *failHist, 
+	Double_t &resEff, Double_t &resErrl, Double_t &resErrh, Double_t &resChi2Pass, Double_t &resChi2Fail, TH1D *passHist, TH1D *failHist, 
 	const Int_t sigpass, const Int_t bkgpass, const Int_t sigfail, const Int_t bkgfail,
 	TCanvas *cpass, TCanvas *cfail, const TString effType, const Bool_t etaRegion, const Int_t iBin, const Float_t lumi, const TString format
 ){
@@ -453,7 +469,7 @@ void performFit(
   sprintf(pname,"%s_%s_pass_%d", effType.Data(), etaRegion ? "forward" : "central", iBin);
   sprintf(yield,"%u Events",(Int_t)passHist->GetEntries());
   sprintf(nsigstr,"N_{sig} = %.1f #pm %.1f",NsigPass.getVal(),NsigPass.getPropagatedError(*fitResult));
-  sprintf(chi2str,"#chi^{2}/DOF = %.3f",mframePass->chiSquare(nflpass));
+  sprintf(chi2str,"#chi^{2}/DOF = %.3f",mframePass->chiSquare(nflpass));resChi2Pass = mframePass->chiSquare(nflpass);
   if(bkgpass>0)
     sprintf(nbkgstr,"N_{bkg} = %.1f #pm %.1f",NbkgPass.getVal(),NbkgPass.getPropagatedError(*fitResult));
   CPlot plotPass(pname,mframePass,"Passing probes","tag-probe mass [GeV/c^{2}]",ylabel);
@@ -477,7 +493,7 @@ void performFit(
   sprintf(yield,"%u Events",(Int_t)failHist->GetEntries());
   sprintf(nsigstr,"N_{sig} = %.1f #pm %.1f",NsigFail.getVal(),NsigFail.getPropagatedError(*fitResult));
   sprintf(nbkgstr,"N_{bkg} = %.1f #pm %.1f",NbkgFail.getVal(),NbkgFail.getPropagatedError(*fitResult));
-  sprintf(chi2str,"#chi^{2}/DOF = %.3f",mframeFail->chiSquare(nflfail));
+  sprintf(chi2str,"#chi^{2}/DOF = %.3f",mframeFail->chiSquare(nflfail));resChi2Fail = mframeFail->chiSquare(nflfail);
   CPlot plotFail(pname,mframeFail,"Failing probes","tag-probe mass [GeV/c^{2}]",ylabel);
   plotFail.AddTextBox(binlabelx,0.21,0.75,0.51,0.80,0,kBlack,-1);
   plotFail.AddTextBox(binlabely,0.21,0.70,0.51,0.75,0,kBlack,-1);
