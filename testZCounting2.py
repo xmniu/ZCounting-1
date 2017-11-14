@@ -15,7 +15,9 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-b","--beginRun",help="first run to analyze [%default]",default=299918)
-parser.add_argument("-e","--endRun",help=" analyze stops when comes to this run [%default]",default=1000000)
+parser.add_argument("-e","--endRun",help="analyze stops when comes to this run [%default]",default=1000000)
+parser.add_argument("-l","--lumiChunk",help="define statistics: measurement less than this to be merged with next measurement [%default]",default=1000000)
+parser.add_argument("-s","--sizeChunk",help="define granularity: numbers of LS to be merged for one measurement [%default]",default=50)
 parser.add_argument("-v","--verbose",help="increase logging level from INFO to DEBUG",default=False,action="store_true")
 
 args = parser.parse_args()
@@ -25,9 +27,8 @@ else:
     log.basicConfig(format="%(levelname)s: %(message)s", level=log.INFO)
 
 #ByLS csv inputs
-#inFile="/eos/cms/store/group/comm_luminosity/ZCounting/2017LumiByLS_trig.csv"
-#inFile="/eos/cms/store/group/comm_luminosity/ZCounting/2017LumiByLS_notrig_PU.csv"
-inFile="/eos/cms/store/group/comm_luminosity/ZCounting/2017LumiByLS_trig_PU.csv"
+inFile="/eos/cms/store/user/jsalfeld/2017LumiByLS_notrig_PU.csv"
+#inFile="/eos/cms/store/user/jsalfeld/2017LumiByLS_trig.csv"
 
 #Data inputs
 eosDir="/eos/cms/store/group/comm_luminosity/ZCounting/DQMFiles2017/cmsweb.cern.ch/dqm/offline/data/browse/ROOT/OfflineData/Run2017/SingleMuon/"
@@ -39,6 +40,7 @@ mcShapeSubDir="MCFiles/92X_norw_IsoMu27_noIso/"
 #Constant settings
 currentYear=2017
 chunkSize=50
+maximumLS=2500
 secPerLS=float(23.3)
 
 
@@ -114,6 +116,8 @@ for run_i in range(0,len(fillRunlist)):
     lumiRec=array('d')
     windowarray=array('d')
     deadTime=array('d')
+    beginLS=array('i')
+    endLS=array('i')
 
     HLTeffB=array('d')
     HLTeffE=array('d')
@@ -132,6 +136,7 @@ for run_i in range(0,len(fillRunlist)):
     ZEEeff=array('d')
 
     nMeasurements=0
+    skipStatus=0
 
     log.info("===Loading input DQMIO.root file...")
     eosFile = ""
@@ -147,12 +152,18 @@ for run_i in range(0,len(fillRunlist)):
 
     log.info("===Looping over LSchunks...")
     for chunk_i in range(0,len(LSchunks)):
+        if skipStatus==2:
+            break
+        if float(LSchunks[chunk_i][-1]) > maximumLS:
+            log.warning("======Losing data after LS %i for Run%i",maximumLS,run)
+            skipStatus=2
+            while LSchunks[chunk_i][-1] > maximumLS:
+                del LSchunks[chunk_i][-1]
+
+        nMeasurements=nMeasurements+1
+
         log.info("======Running LSchunk No.%i",chunk_i)
         log.debug("======LS list: %s",LSchunks[chunk_i])
-
-	if float(LSchunks[chunk_i][-1]) > 2499.:
-                continue 
-   	nMeasurements=nMeasurements+1
 
 	recLumi_i = sum(Rec_chunks[chunk_i])
 	delLumi_i = sum(Del_chunks[chunk_i])	
@@ -220,6 +231,8 @@ for run_i in range(0,len(fillRunlist)):
         lumiRec.append(recLumi_i)
         windowarray.append(timeWindow_i)
         deadTime.append(deadtime_i)
+        beginLS.append(LSchunks[chunk_i][0])
+        endLS.append(LSchunks[chunk_i][-1])
 	#Efficiency related
     	HLTeffB.append(HLTeffB_i)
     	HLTeffE.append(HLTeffE_i)
@@ -245,5 +258,5 @@ for run_i in range(0,len(fillRunlist)):
 
     with open('effcsvfile'+str(run)+'.csv','wb') as file:
         for c in range(0,nMeasurements):
-                file.write(str(int(fillarray[c]))+","+str(beginTime[c])+","+str(endTime[c])+","+str(Zrate[c])+","+str(instDel[c])+","+str(lumiDel[c])+","+str(ZyieldDel[c])+","+str(lumiRec[c])+","+str(windowarray[c])+","+str(HLTeffB[c])+","+str(HLTeffE[c])+","+str(SITeffB[c])+","+str(SITeffE[c])+","+str(StaeffB[c])+","+str(StaeffE[c])+","+str(ZMCeff[c])+","+str(ZMCeffBB[c])+","+str(ZMCeffBE[c])+","+str(ZMCeffEE[c])+","+str(ZBBeff[c])+","+str(ZBEeff[c])+","+str(ZEEeff[c]))
+                file.write(str(int(fillarray[c]))+","+str(beginTime[c])+","+str(endTime[c])+","+str(Zrate[c])+","+str(instDel[c])+","+str(lumiDel[c])+","+str(ZyieldDel[c])+","+str(beginLS[c])+","+str(endLS[c])+","+str(lumiRec[c])+","+str(windowarray[c])+","+str(HLTeffB[c])+","+str(HLTeffE[c])+","+str(SITeffB[c])+","+str(SITeffE[c])+","+str(StaeffB[c])+","+str(StaeffE[c])+","+str(ZMCeff[c])+","+str(ZMCeffBB[c])+","+str(ZMCeffBE[c])+","+str(ZMCeffEE[c])+","+str(ZBBeff[c])+","+str(ZBEeff[c])+","+str(ZEEeff[c]))
                 file.write('\n')
