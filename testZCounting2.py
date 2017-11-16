@@ -16,7 +16,8 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("-b","--beginRun",help="first run to analyze [%default]",default=299918)
 parser.add_argument("-e","--endRun",help="analyze stops when comes to this run [%default]",default=1000000)
-parser.add_argument("-l","--lumiChunk",help="define statistics: measurement less than this to be merged with next measurement [%default]",default=1000000)
+parser.add_argument("-m","--mergeStat",help="option to switch on merging: measurement less than lumiChunk to be merged with next measurement [%default]",default=False)
+parser.add_argument("-l","--lumiChunk",help="define statistics: measurement less than this to be merged with next measurement [%default]",default=10.)
 parser.add_argument("-s","--sizeChunk",help="define granularity: numbers of LS to be merged for one measurement [%default]",default=50)
 parser.add_argument("-v","--verbose",help="increase logging level from INFO to DEBUG",default=False,action="store_true")
 
@@ -41,7 +42,8 @@ mcShapeSubDir="MCFiles/92X_norw_IsoMu27_noIso/"
 secPerLS=float(23.3)
 currentYear=2017
 maximumLS=2500
-chunkSize=50
+chunkSize=int(args.sizeChunk)
+lumiChunk=float(args.lumiChunk)
 staFitChi2Th=2.   #threshold on chi2 to trigger protection mechanism
 staFitEffTh=0.999 #threshold on eff. to trigger protection mechanism
 
@@ -125,6 +127,48 @@ for run_i in range(0,len(fillRunlist)):
             break
     log.debug("===LSchunk lists after truncate: %s",LSchunks)
 
+    if args.mergeStat:
+        log.debug("===Pre-looping over LSchunks to merge stat...")
+        log.debug("===LSchunk lists before merge: %s",LSchunks)
+
+  
+        for chunk_i in range(0,len(LSchunks)):
+            log.debug("======current ivalue = %i",chunk_i)
+            log.debug("======current length = %i",len(LSchunks))
+
+            if chunk_i == len(LSchunks):
+                break
+
+            log.debug("======current lumi   = %f",sum(Rec_chunks[chunk_i]))
+
+            chunk_j = chunk_i
+            currentLumi = sum(Rec_chunks[chunk_j])
+            if currentLumi < lumiChunk:
+                while currentLumi < lumiChunk and chunk_j < len(LSchunks)-1:
+                    log.debug("========= current jvalue = %i",chunk_j)
+                    log.debug("========= index to merge = %i",chunk_j+1)
+                    log.debug("========= lumi  to merge = %f",sum(Rec_chunks[chunk_j+1]))
+                    log.debug("========= lumi  total    = %f",currentLumi + sum(Rec_chunks[chunk_j+1]))
+
+                    currentLumi += sum(Rec_chunks[chunk_j+1])
+		    LSchunks[chunk_j]     = LSchunks[chunk_j]     + LSchunks[chunk_j+1]
+                    Del_chunks[chunk_j]   = Del_chunks[chunk_j]   + Del_chunks[chunk_j+1]
+                    Rec_chunks[chunk_j]   = Rec_chunks[chunk_j]   + Rec_chunks[chunk_j+1]
+                    Avgpu_chunks[chunk_j] = Avgpu_chunks[chunk_j] + Avgpu_chunks[chunk_j+1]
+                    time_chunks[chunk_j]  = time_chunks[chunk_j]  + time_chunks[chunk_j+1]
+
+                    log.debug("========= merged LSchunk =%s",LSchunks[chunk_j])
+
+                    del LSchunks[chunk_j+1]
+                    del Del_chunks[chunk_j+1]
+                    del Rec_chunks[chunk_j+1]
+                    del Avgpu_chunks[chunk_j+1]
+                    del time_chunks[chunk_j+1]
+            else:
+                log.debug("====== not merging index "),str(chunk_i)
+
+    if args.mergeStat:
+        log.debug("===LSchunk lists after merge: %s",LSchunks)
 
     log.debug("===Setting up arrays for output csv...")
     fillarray=array('d')
