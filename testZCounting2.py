@@ -19,6 +19,7 @@ parser.add_argument("-e","--endRun",help="analyze stops when comes to this run [
 parser.add_argument("-m","--mergeStat",help="option to switch on merging: measurement less than lumiChunk to be merged with next measurement [%default]",default=False)
 parser.add_argument("-l","--lumiChunk",help="define statistics: measurement less than this to be merged with next measurement [%default]",default=10.)
 parser.add_argument("-s","--sizeChunk",help="define granularity: numbers of LS to be merged for one measurement [%default]",default=50)
+parser.add_argument("-u","--microBarn",help="luminosity in input csv file is in microbarn",default=False)
 parser.add_argument("-v","--verbose",help="increase logging level from INFO to DEBUG",default=False,action="store_true")
 
 args = parser.parse_args()
@@ -28,7 +29,8 @@ else:
     log.basicConfig(format="%(levelname)s: %(message)s", level=log.INFO)
 
 #ByLS csv inputs
-inFile="/eos/cms/store/user/jsalfeld/2017LumiByLS_notrig_PU.csv"
+#inFile="/eos/cms/store/user/jsalfeld/2017LumiByLS_notrig_PU.csv"
+inFile="/afs/cern.ch/user/j/jsalfeld/public/2017LumiByLS_hfet_notrig.csv"
 #inFile="/eos/cms/store/user/jsalfeld/2017LumiByLS_trig.csv"
 
 #Data inputs
@@ -44,9 +46,12 @@ currentYear=2017
 maximumLS=2500
 chunkSize=int(args.sizeChunk)
 lumiChunk=float(args.lumiChunk)
-staFitChi2Th=2.   #threshold on chi2 to trigger protection mechanism
-staFitEffTh=0.999 #threshold on eff. to trigger protection mechanism
+staFitChi2Th=2.     #threshold on chi2 to trigger protection mechanism
+staFitEffThHi=0.999 #threshold on eff. to trigger protection mechanism
+staFitEffThLo=0.95 #threshold on eff. to trigger protection mechanism
 
+if args.microBarn:
+    lumiChunk = lumiChunk*1000000.
 
 log.info("Loading C marco...")
 ROOT.gROOT.Macro( os.path.expanduser( '~/.rootlogon.C' ) )
@@ -62,8 +67,12 @@ log.debug("%s",data.axes)
 
 # TAKE INPUT CSV FILE AND STRUCTURE PER-RUN BASIS, THEN CREATE LIST OF LUMI AND LS`s PER RUN
 LSlist=data.groupby('#run:fill')['ls'].apply(list)
-recLumiList=data.groupby('#run:fill')['recorded(/pb)'].apply(list)
-delLumiList=data.groupby('#run:fill')['delivered(/pb)'].apply(list)
+if args.microBarn:
+    recLumiList=data.groupby('#run:fill')['recorded(/ub)'].apply(list)
+    delLumiList=data.groupby('#run:fill')['delivered(/ub)'].apply(list)
+else:
+    recLumiList=data.groupby('#run:fill')['recorded(/pb)'].apply(list)
+    delLumiList=data.groupby('#run:fill')['delivered(/pb)'].apply(list)
 avgpuList=data.groupby('#run:fill')['avgpu'].apply(list)
 timeList=data.groupby('#run:fill')['time'].apply(list)
 
@@ -228,6 +237,11 @@ for run_i in range(0,len(fillRunlist)):
 	recLumi_i = sum(Rec_chunks[chunk_i])
 	delLumi_i = sum(Del_chunks[chunk_i])	
         deadtime_i = recLumi_i/delLumi_i
+
+        if args.microBarn:
+            recLumi_i = recLumi_i/1000000.
+            delLumi_i = delLumi_i/1000000.
+
         log.debug("======RecLumi: %f",recLumi_i)
         log.debug("======DelLumi: %f",delLumi_i)
         log.debug("======DeadTime: %f",deadtime_i)
@@ -264,13 +278,13 @@ for run_i in range(0,len(fillRunlist)):
         StaeffE_i = StaeffresE_i[0]
         Zyield_i  = Zyieldres_i[0]
 
-        if StaeffresB_i[3] > staFitChi2Th or StaeffresB_i[4] > staFitChi2Th or StaeffB_i >= staFitEffTh:
+        if StaeffresB_i[3] > staFitChi2Th or StaeffresB_i[4] > staFitChi2Th or StaeffB_i >= staFitEffThHi or StaeffB_i <= staFitEffThLo:
             StaeffB_i = prevStaEffB
             log.warning("======Bad fit might happen, origin eff = %f, with chi2 = %f, %f",StaeffresB_i[0],StaeffresB_i[3],StaeffresB_i[4])
         else:
             prevStaEffB = StaeffB_i
 
-        if StaeffresE_i[3] > staFitChi2Th or StaeffresE_i[4] > staFitChi2Th or StaeffE_i >= staFitEffTh:
+        if StaeffresE_i[3] > staFitChi2Th or StaeffresE_i[4] > staFitChi2Th or StaeffE_i >= staFitEffThHi or StaeffE_i <= staFitEffThLo:
             StaeffE_i = prevStaEffE
             log.warning("======Bad fit might happen, origin eff = %f, with chi2 = %f, %f",StaeffresE_i[0],StaeffresE_i[3],StaeffresE_i[4])
         else:
