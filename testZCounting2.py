@@ -323,10 +323,10 @@ for run_i in range(0,len(fillRunlist)):
         Zrate.append(ZRate)
         instDel.append(delLumi_i/timeWindow_i)
         lumiDel.append(delLumi_i)
-        ZyieldDel.append(Zyield_i/(ZMCEff*deadtime_i))
+        ZyieldDel.append(Zyield_i*(1-0.01)/(ZMCEff*deadtime_i))
 
 	#Additional variables to write in efficiency csv file
-        ZyieldRec.append(Zyield_i)
+        ZyieldRec.append(Zyield_i*(1-0.01)
         lumiRec.append(recLumi_i)
         windowarray.append(timeWindow_i)
         deadTime.append(deadtime_i)
