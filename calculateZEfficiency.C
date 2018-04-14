@@ -88,66 +88,66 @@ std::vector<float> getMCMuEff(int nPU){
 
 
 std::vector<float> getMCZCount(int nPU){
-  if(nPU <= 1)  {std::vector<float> v = {7.32638e+06,516096,823194,742601}; return v;}
-  else if(nPU == 2)  {std::vector<float> v = {8.28262e+06,596739,911799,840891}; return v;}
-  else if(nPU == 3)  {std::vector<float> v = {8.56469e+06,623743,935775,872603}; return v;}
-  else if(nPU == 4)  {std::vector<float> v = {8.65834e+06,630984,943684,883225}; return v;}
-  else if(nPU == 5)  {std::vector<float> v = {8.65681e+06,632190,948335,886750}; return v;}
-  else if(nPU == 6)  {std::vector<float> v = {8.67545e+06,632165,950883,886036}; return v;}
-  else if(nPU == 7)  {std::vector<float> v = {8.71325e+06,632178,953308,883848}; return v;}
-  else if(nPU == 8)  {std::vector<float> v = {8.7132e+06,632436,955560,881127}; return v;}
-  else if(nPU == 9)  {std::vector<float> v = {8.65993e+06,633894,958783,879818}; return v;}
-  else if(nPU == 10) {std::vector<float> v = {8.59748e+06,633748,959266,876868}; return v;}
-  else if(nPU == 11) {std::vector<float> v = {8.7201e+06,633678,960399,875444}; return v;}
-  else if(nPU == 12) {std::vector<float> v = {8.74644e+06,634011,962047,875350}; return v;}
-  else if(nPU == 13) {std::vector<float> v = {8.64293e+06,633505,962831,875055}; return v;}
-  else if(nPU == 14) {std::vector<float> v = {8.6314e+06,632363,960282,872590}; return v;}
-  else if(nPU == 15) {std::vector<float> v = {8.59071e+06,632952,962142,873900}; return v;}
-  else if(nPU == 16) {std::vector<float> v = {8.63996e+06,632415,960248,872234}; return v;}
-  else if(nPU == 17) {std::vector<float> v = {8.68158e+06,631510,958880,870788}; return v;}
-  else if(nPU == 18) {std::vector<float> v = {8.59761e+06,631830,961379,872395}; return v;}
-  else if(nPU == 19) {std::vector<float> v = {8.69982e+06,631472,959326,870427}; return v;}
-  else if(nPU == 20) {std::vector<float> v = {8.72482e+06,631439,957891,869028}; return v;}
-  else if(nPU == 21) {std::vector<float> v = {8.82752e+06,631784,960217,870427}; return v;}
-  else if(nPU == 22) {std::vector<float> v = {8.82954e+06,631154,957535,867917}; return v;}
-  else if(nPU == 23) {std::vector<float> v = {8.75476e+06,631341,958258,868172}; return v;}
-  else if(nPU == 24) {std::vector<float> v = {8.85619e+06,631765,959393,868835}; return v;}
-  else if(nPU == 25) {std::vector<float> v = {8.74288e+06,631754,956812,866734}; return v;}
-  else if(nPU == 26) {std::vector<float> v = {8.71053e+06,631386,957147,866691}; return v;}
-  else if(nPU == 27) {std::vector<float> v = {8.59043e+06,631763,954960,865095}; return v;}
-  else if(nPU == 28) {std::vector<float> v = {8.51673e+06,631576,955618,865423}; return v;}
-  else if(nPU == 29) {std::vector<float> v = {8.67048e+06,631508,955294,865093}; return v;}
-  else if(nPU == 30) {std::vector<float> v = {8.60522e+06,631416,954842,864628}; return v;}
-  else if(nPU == 31) {std::vector<float> v = {8.72445e+06,630523,952077,862289}; return v;}
-  else if(nPU == 32) {std::vector<float> v = {8.59199e+06,631139,951926,862174}; return v;}
-  else if(nPU == 33) {std::vector<float> v = {8.70557e+06,631082,950625,860996}; return v;}
-  else if(nPU == 34) {std::vector<float> v = {8.6169e+06,631250,950797,860860}; return v;}
-  else if(nPU == 35) {std::vector<float> v = {8.59472e+06,630948,949853,859699}; return v;}
-  else if(nPU == 36) {std::vector<float> v = {8.60468e+06,630887,949820,859152}; return v;}
-  else if(nPU == 37) {std::vector<float> v = {8.64297e+06,630400,948859,857697}; return v;}
-  else if(nPU == 38) {std::vector<float> v = {8.6408e+06,630403,947874,856273}; return v;}
-  else if(nPU == 39) {std::vector<float> v = {8.64463e+06,631131,946801,854931}; return v;}
-  else if(nPU == 40) {std::vector<float> v = {8.63092e+06,631420,947889,854910}; return v;}
-  else if(nPU == 41) {std::vector<float> v = {8.64061e+06,630610,945831,852258}; return v;}
-  else if(nPU == 42) {std::vector<float> v = {8.66215e+06,631077,945210,851033}; return v;}
-  else if(nPU == 43) {std::vector<float> v = {8.61586e+06,631527,944289,849561}; return v;}
-  else if(nPU == 44) {std::vector<float> v = {8.61865e+06,631679,945173,849299}; return v;}
-  else if(nPU == 45) {std::vector<float> v = {8.72167e+06,631560,944206,847719}; return v;}
-  else if(nPU == 46) {std::vector<float> v = {8.66502e+06,631229,942332,845477}; return v;}
-  else if(nPU == 47) {std::vector<float> v = {8.64944e+06,631644,942478,844979}; return v;}
-  else if(nPU == 48) {std::vector<float> v = {8.69703e+06,630828,941190,843214}; return v;}
-  else if(nPU == 49) {std::vector<float> v = {8.65393e+06,630447,940593,842165}; return v;}
-  else if(nPU == 50) {std::vector<float> v = {8.63789e+06,630208,939802,841180} ; return v;}
-  else if(nPU == 51) {std::vector<float> v = {8.69968e+06,629015,939066,840059} ; return v;}
-  else if(nPU == 52) {std::vector<float> v = {8.65161e+06,627925,937917,838878} ; return v;}
-  else if(nPU == 53) {std::vector<float> v = {8.66376e+06,627224,937067,838197} ; return v;}
-  else if(nPU == 54) {std::vector<float> v = {8.70101e+06,625906,936442,837691} ; return v;}
-  else if(nPU == 55) {std::vector<float> v = {8.64189e+06,624410,934948,836750} ; return v;}
-  else if(nPU == 56) {std::vector<float> v = {8.6668e+06,623230,933600,836242} ; return v;}
-  else if(nPU == 57) {std::vector<float> v = {8.69966e+06,621701,932435,836026} ; return v;}
-  else if(nPU == 58) {std::vector<float> v = {8.65444e+06,619970,929849,835021} ; return v;}
-  else if(nPU == 59) {std::vector<float> v = {8.66529e+06,618714,927656,834712} ; return v;}
-  else if(nPU >= 60) {std::vector<float> v = {8.66919e+06,617394,925427,834627}; return v;}
+  if(nPU <= 1)  {std::vector<float> v = {8.72492e+06,516096,823194,742601}; return v;}
+  else if(nPU == 2)  {std::vector<float> v = {8.72492e+06,596739,911799,840891}; return v;}
+  else if(nPU == 3)  {std::vector<float> v = {8.72492e+06,623743,935775,872603}; return v;}
+  else if(nPU == 4)  {std::vector<float> v = {8.72492e+06,630984,943684,883225}; return v;}
+  else if(nPU == 5)  {std::vector<float> v = {8.72492e+06,632190,948335,886750}; return v;}
+  else if(nPU == 6)  {std::vector<float> v = {8.72492e+06,632165,950883,886036}; return v;}
+  else if(nPU == 7)  {std::vector<float> v = {8.72492e+06,632178,953308,883848}; return v;}
+  else if(nPU == 8)  {std::vector<float> v = {8.72492e+06,632436,955560,881127}; return v;}
+  else if(nPU == 9)  {std::vector<float> v = {8.72492e+06,633894,958783,879818}; return v;}
+  else if(nPU == 10) {std::vector<float> v = {8.72492e+06,633748,959266,876868}; return v;}
+  else if(nPU == 11) {std::vector<float> v = {8.72492e+06,633678,960399,875444}; return v;}
+  else if(nPU == 12) {std::vector<float> v = {8.72492e+06,634011,962047,875350}; return v;}
+  else if(nPU == 13) {std::vector<float> v = {8.72492e+06,633505,962831,875055}; return v;}
+  else if(nPU == 14) {std::vector<float> v = {8.72492e+06,632363,960282,872590}; return v;}
+  else if(nPU == 15) {std::vector<float> v = {8.72492e+06,632952,962142,873900}; return v;}
+  else if(nPU == 16) {std::vector<float> v = {8.72492e+06,632415,960248,872234}; return v;}
+  else if(nPU == 17) {std::vector<float> v = {8.72492e+06,631510,958880,870788}; return v;}
+  else if(nPU == 18) {std::vector<float> v = {8.72492e+06,631830,961379,872395}; return v;}
+  else if(nPU == 19) {std::vector<float> v = {8.72492e+06,631472,959326,870427}; return v;}
+  else if(nPU == 20) {std::vector<float> v = {8.72492e+06,631439,957891,869028}; return v;}
+  else if(nPU == 21) {std::vector<float> v = {8.72492e+06,631784,960217,870427}; return v;}
+  else if(nPU == 22) {std::vector<float> v = {8.72492e+06,631154,957535,867917}; return v;}
+  else if(nPU == 23) {std::vector<float> v = {8.72492e+06,631341,958258,868172}; return v;}
+  else if(nPU == 24) {std::vector<float> v = {8.72492e+06,631765,959393,868835}; return v;}
+  else if(nPU == 25) {std::vector<float> v = {8.72492e+06,631754,956812,866734}; return v;}
+  else if(nPU == 26) {std::vector<float> v = {8.72492e+06,631386,957147,866691}; return v;}
+  else if(nPU == 27) {std::vector<float> v = {8.72492e+06,631763,954960,865095}; return v;}
+  else if(nPU == 28) {std::vector<float> v = {8.72492e+06,631576,955618,865423}; return v;}
+  else if(nPU == 29) {std::vector<float> v = {8.72492e+06,631508,955294,865093}; return v;}
+  else if(nPU == 30) {std::vector<float> v = {8.72492e+06,631416,954842,864628}; return v;}
+  else if(nPU == 31) {std::vector<float> v = {8.72492e+06,630523,952077,862289}; return v;}
+  else if(nPU == 32) {std::vector<float> v = {8.72492e+06,631139,951926,862174}; return v;}
+  else if(nPU == 33) {std::vector<float> v = {8.72492e+06,631082,950625,860996}; return v;}
+  else if(nPU == 34) {std::vector<float> v = {8.72492e+06,631250,950797,860860}; return v;}
+  else if(nPU == 35) {std::vector<float> v = {8.72492e+06,630948,949853,859699}; return v;}
+  else if(nPU == 36) {std::vector<float> v = {8.72492e+06,630887,949820,859152}; return v;}
+  else if(nPU == 37) {std::vector<float> v = {8.72492e+06,630400,948859,857697}; return v;}
+  else if(nPU == 38) {std::vector<float> v = {8.72492e+06,630403,947874,856273}; return v;}
+  else if(nPU == 39) {std::vector<float> v = {8.72492e+06,631131,946801,854931}; return v;}
+  else if(nPU == 40) {std::vector<float> v = {8.72492e+06,631420,947889,854910}; return v;}
+  else if(nPU == 41) {std::vector<float> v = {8.72492e+06,630610,945831,852258}; return v;}
+  else if(nPU == 42) {std::vector<float> v = {8.72492e+06,631077,945210,851033}; return v;}
+  else if(nPU == 43) {std::vector<float> v = {8.72492e+06,631527,944289,849561}; return v;}
+  else if(nPU == 44) {std::vector<float> v = {8.72492e+06,631679,945173,849299}; return v;}
+  else if(nPU == 45) {std::vector<float> v = {8.72492e+06,631560,944206,847719}; return v;}
+  else if(nPU == 46) {std::vector<float> v = {8.72492e+06,631229,942332,845477}; return v;}
+  else if(nPU == 47) {std::vector<float> v = {8.72492e+06,631644,942478,844979}; return v;}
+  else if(nPU == 48) {std::vector<float> v = {8.72492e+06,630828,941190,843214}; return v;}
+  else if(nPU == 49) {std::vector<float> v = {8.72492e+06,630447,940593,842165}; return v;}
+  else if(nPU == 50) {std::vector<float> v = {8.72492e+06,630208,939802,841180} ; return v;}
+  else if(nPU == 51) {std::vector<float> v = {8.72492e+06,629015,939066,840059} ; return v;}
+  else if(nPU == 52) {std::vector<float> v = {8.72492e+06,627925,937917,838878} ; return v;}
+  else if(nPU == 53) {std::vector<float> v = {8.72492e+06,627224,937067,838197} ; return v;}
+  else if(nPU == 54) {std::vector<float> v = {8.72492e+06,625906,936442,837691} ; return v;}
+  else if(nPU == 55) {std::vector<float> v = {8.72492e+06,624410,934948,836750} ; return v;}
+  else if(nPU == 56) {std::vector<float> v = {8.72492e+06,623230,933600,836242} ; return v;}
+  else if(nPU == 57) {std::vector<float> v = {8.72492e+06,621701,932435,836026} ; return v;}
+  else if(nPU == 58) {std::vector<float> v = {8.72492e+06,619970,929849,835021} ; return v;}
+  else if(nPU == 59) {std::vector<float> v = {8.72492e+06,618714,927656,834712} ; return v;}
+  else if(nPU >= 60) {std::vector<float> v = {8.72492e+06,617394,925427,834627}; return v;}
   else std::invalid_argument("nPU");
 }
 

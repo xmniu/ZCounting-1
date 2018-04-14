@@ -54,7 +54,6 @@ if args.microBarn:
 log.info("Loading C marco...")
 ROOT.gROOT.Macro( os.path.expanduser( '~/.rootlogon.C' ) )
 ROOT.gROOT.LoadMacro("calculateDataEfficiency_v3.C")
-ROOT.gROOT.LoadMacro("calculateZEfficiency.C")
 ROOT.gROOT.SetBatch(True)
 
 log.info("Loading input byls csv...")
@@ -189,6 +188,7 @@ for run_i in range(0,len(fillRunlist)):
     Zrate=array('d')
     instDel=array('d')
     lumiDel=array('d')
+    pileUp=array('d')
     ZyieldDel=array('d')
 
     ZyieldRec=array('d')
@@ -297,16 +297,21 @@ for run_i in range(0,len(fillRunlist)):
         log.debug("======perMuonEff: %f, %f ,%f, %f, %f, %f",HLTeffB_i,HLTeffE_i,SITeffB_i,SITeffE_i,StaeffB_i,StaeffE_i)
         log.debug("======ZRawYield: %f",Zyield_i)
 
-	#ZtoMuMu efficiency considering di-mu correlation from MC
-        ZMCEff=ROOT.calculateZEfficiency(0,avgPileup_i,HLTeffB_i,HLTeffE_i,SITeffB_i,SITeffE_i,StaeffB_i,StaeffE_i)
-        ZMCEffBB = ROOT.calculateZEfficiency(1,avgPileup_i,HLTeffB_i,HLTeffE_i,SITeffB_i,SITeffE_i,StaeffB_i,StaeffE_i)
-        ZMCEffBE = ROOT.calculateZEfficiency(2,avgPileup_i,HLTeffB_i,HLTeffE_i,SITeffB_i,SITeffE_i,StaeffB_i,StaeffE_i)
-        ZMCEffEE = ROOT.calculateZEfficiency(3,avgPileup_i,HLTeffB_i,HLTeffE_i,SITeffB_i,SITeffE_i,StaeffB_i,StaeffE_i)
-
 	#ZtoMuMu efficiency purely from data
         ZBBEff=(StaeffB_i*StaeffB_i * SITeffB_i*StaeffB_i * (1-(1-HLTeffB_i)*(1-HLTeffB_i)))
         ZBEEff=(StaeffB_i*StaeffE_i * SITeffB_i*SITeffE_i * (1-(1-HLTeffB_i)*(1-HLTeffE_i)))
         ZEEEff=(StaeffE_i*StaeffE_i * SITeffE_i*StaeffE_i * (1-(1-HLTeffE_i)*(1-HLTeffE_i)))
+
+	#ZtoMuMu efficiency correction as a parametrized function of pile-up
+	ZBBEffCorr = 0.00305155 + 0.000519427 * avgPileup_i
+	ZBEEffCorr = 0.00585766 + 0.000532229 * avgPileup_i
+	ZEEEffCorr = 0.0114659  + 0.00048351  * avgPileup_i
+
+	#ZtoMuMu efficiency after correction 
+	ZMCEffBB = ZBBEff - ZBBEffCorr 
+	ZMCEffBE = ZBEEff - ZBEEffCorr
+	ZMCEffEE = ZEEEff - ZEEEffCorr
+	ZMCEff = (ZMCEffBB * 0.077904 + ZMCEffBE * 0.117200 + ZMCEffEE * 0.105541)/0.300644 
         log.debug("======ZToMuMuEff: %f",ZMCEff)
         log.debug("======ZToMuMuEff: %f, %f ,%f, %f, %f, %f",ZMCEffBB, ZMCEffBE, ZMCEffEE, ZBBEff, ZBEEff, ZEEEff)
 
@@ -323,6 +328,7 @@ for run_i in range(0,len(fillRunlist)):
         Zrate.append(ZRate)
         instDel.append(delLumi_i/timeWindow_i)
         lumiDel.append(delLumi_i)
+	pileUp.append(avgPileup_i)
         ZyieldDel.append(Zyield_i*(1-0.01)/(ZMCEff*deadtime_i))
 
 	#Additional variables to write in efficiency csv file
@@ -357,5 +363,5 @@ for run_i in range(0,len(fillRunlist)):
 
     with open('effcsvfile'+str(run)+'.csv','wb') as file:
         for c in range(0,nMeasurements):
-                file.write(str(int(fillarray[c]))+","+str(beginTime[c])+","+str(endTime[c])+","+str(Zrate[c])+","+str(instDel[c])+","+str(lumiDel[c])+","+str(ZyieldDel[c])+","+str(beginLS[c])+","+str(endLS[c])+","+str(lumiRec[c])+","+str(windowarray[c])+","+str(HLTeffB[c])+","+str(HLTeffE[c])+","+str(SITeffB[c])+","+str(SITeffE[c])+","+str(StaeffB[c])+","+str(StaeffE[c])+","+str(ZMCeff[c])+","+str(ZMCeffBB[c])+","+str(ZMCeffBE[c])+","+str(ZMCeffEE[c])+","+str(ZBBeff[c])+","+str(ZBEeff[c])+","+str(ZEEeff[c]))
+                file.write(str(int(fillarray[c]))+","+str(beginTime[c])+","+str(endTime[c])+","+str(Zrate[c])+","+str(instDel[c])+","+str(lumiDel[c])+","+str(ZyieldDel[c])+","+str(beginLS[c])+","+str(endLS[c])+","+str(lumiRec[c])+","+str(windowarray[c])+","+str(HLTeffB[c])+","+str(HLTeffE[c])+","+str(SITeffB[c])+","+str(SITeffE[c])+","+str(StaeffB[c])+","+str(StaeffE[c])+","+str(ZMCeff[c])+","+str(ZMCeffBB[c])+","+str(ZMCeffBE[c])+","+str(ZMCeffEE[c])+","+str(ZBBeff[c])+","+str(ZBEeff[c])+","+str(ZEEeff[c])+","+str(pileUp[c]))
                 file.write('\n')
