@@ -303,9 +303,27 @@ for run_i in range(0,len(fillRunlist)):
         ZEEEff=(StaeffE_i*StaeffE_i * SITeffE_i*StaeffE_i * (1-(1-HLTeffE_i)*(1-HLTeffE_i)))
 
 	#ZtoMuMu efficiency correction as a parametrized function of pile-up
-	ZBBEffCorr = 0.00305155 + 0.000519427 * avgPileup_i
-	ZBEEffCorr = 0.00585766 + 0.000532229 * avgPileup_i
-	ZEEEffCorr = 0.0114659  + 0.00048351  * avgPileup_i
+	#ZBBEffCorr = 0.00305155 + 0.000519427 * avgPileup_i
+	#ZBEEffCorr = 0.00585766 + 0.000532229 * avgPileup_i
+	#ZEEEffCorr = 0.0114659  + 0.00048351  * avgPileup_i
+
+        ZBBEffCorr = 0
+	if avgPileup_i < 50:
+            ZBBEffCorr = 0.0123732 + 0.000161345 * avgPileup_i 
+        else:
+            ZBBEffCorr = -0.0878557 + 0.00218727 * avgPileup_i
+ 
+        ZBEEffCorr = 0
+        if avgPileup_i < 55:
+            ZBEEffCorr = 0.00875762 + 0.000493846 * avgPileup_i
+        else:
+            ZBEEffCorr = -0.0600895 + 0.00179 * avgPileup_i
+
+        ZEEEffCorr = 0
+        if avgPileup_i < 40:
+            ZEEEffCorr = 0.0160629 + 0.000296308 * avgPileup_i
+        else:
+            ZEEEffCorr = 0.00132398 + 0.000743008 * avgPileup_i
 
 	#ZtoMuMu efficiency after correction 
 	ZMCEffBB = ZBBEff - ZBBEffCorr 
