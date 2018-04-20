@@ -18,6 +18,7 @@ parser.add_argument("-b","--beginRun",help="first run to analyze [%default]",def
 parser.add_argument("-e","--endRun",help="analyze stops when comes to this run [%default]",default=1000000)
 parser.add_argument("-m","--mergeStat",help="option to switch on merging: measurement less than lumiChunk to be merged with next measurement [%default]",default=False)
 parser.add_argument("-l","--lumiChunk",help="define statistics: measurement less than this to be merged with next measurement [%default]",default=10.)
+parser.add_argument("-p","--parametrizeType",help="define parametrization: 1 is for extrapolation, 2 is for piece-wise function",default=1)
 parser.add_argument("-s","--sizeChunk",help="define granularity: numbers of LS to be merged for one measurement [%default]",default=50)
 parser.add_argument("-u","--microBarn",help="luminosity in input csv file is in microbarn",default=False)
 parser.add_argument("-v","--verbose",help="increase logging level from INFO to DEBUG",default=False,action="store_true")
@@ -44,6 +45,7 @@ currentYear=2017
 maximumLS=2500
 chunkSize=int(args.sizeChunk)
 lumiChunk=float(args.lumiChunk)
+paraType=int(args.parametrizeType)
 staFitChi2Th=2.     #threshold on chi2 to trigger protection mechanism
 staFitEffThHi=0.999 #threshold on eff. to trigger protection mechanism
 staFitEffThLo=0.95 #threshold on eff. to trigger protection mechanism
@@ -308,22 +310,29 @@ for run_i in range(0,len(fillRunlist)):
 	#ZEEEffCorr = 0.0114659  + 0.00048351  * avgPileup_i
 
         ZBBEffCorr = 0
-	if avgPileup_i < 50:
-            ZBBEffCorr = 0.0123732 + 0.000161345 * avgPileup_i 
-        else:
-            ZBBEffCorr = -0.0878557 + 0.00218727 * avgPileup_i
- 
-        ZBEEffCorr = 0
-        if avgPileup_i < 55:
-            ZBEEffCorr = 0.00875762 + 0.000493846 * avgPileup_i
-        else:
-            ZBEEffCorr = -0.0600895 + 0.00179 * avgPileup_i
+	ZBEEffCorr = 0
+	ZEEEffCorr = 0
 
-        ZEEEffCorr = 0
-        if avgPileup_i < 40:
+	if paraType == 1:
+	    ZBBEffCorr = 0.0123732 + 0.000161345 * avgPileup_i
+            ZBEEffCorr = 0.00875762 + 0.000493846 * avgPileup_i
             ZEEEffCorr = 0.0160629 + 0.000296308 * avgPileup_i
-        else:
-            ZEEEffCorr = 0.00132398 + 0.000743008 * avgPileup_i
+
+	if paraType == 2:
+    	    if avgPileup_i < 50:
+                ZBBEffCorr = 0.0123732 + 0.000161345 * avgPileup_i 
+            else:
+                ZBBEffCorr = -0.0878557 + 0.00218727 * avgPileup_i
+     
+            if avgPileup_i < 55:
+                ZBEEffCorr = 0.00875762 + 0.000493846 * avgPileup_i
+            else:
+                ZBEEffCorr = -0.0600895 + 0.00179 * avgPileup_i
+    
+            if avgPileup_i < 40:
+                ZEEEffCorr = 0.0160629 + 0.000296308 * avgPileup_i
+            else:
+                ZEEEffCorr = 0.00132398 + 0.000743008 * avgPileup_i
 
 	#ZtoMuMu efficiency after correction 
 	ZMCEffBB = ZBBEff - ZBBEffCorr 
