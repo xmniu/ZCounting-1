@@ -8,7 +8,7 @@ The python file "testZCounting(versionnumber).py" is the file to be executed. Pa
 
 Many aspects in the code can be improved.
 
-Notes: so far we keep mutiple versions, in order to use in various purpose:
-testZCounting3.py: used for 2017 data, in a "semi-automatic" way
-testZCounting4.py: the MAIN one, aim to be used with cron jobs for 2018 data, in a fully automatic way
-testZCounting5.py: used for optimization purpose/tests, not with cron jobs, for 2018 data
+Notes: so far we keep mutiple versions, in order to use in various purpose:<br />
+testZCounting3.py: used for 2017 data, in a "semi-automatic" way<br />
+testZCounting4.py: the MAIN one, aim to be used with cron jobs for 2018 data, in a fully automatic way<br />
+testZCounting5.py: used for optimization purpose/tests, not with cron jobs, for 2018 data<br />
